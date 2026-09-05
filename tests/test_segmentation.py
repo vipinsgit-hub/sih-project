@@ -70,6 +70,13 @@ class TestSegmentation(unittest.TestCase):
         self.assertIn("colored_mask", result)
         self.assertIn("overlay_image", result)
         self.assertIn("class_statistics", result)
+        self.assertIn("dominant_class", result)
+        self.assertIn("dominant_class_ratio", result)
+
+        self.assertIsInstance(result["dominant_class"], str)
+        self.assertIsInstance(result["dominant_class_ratio"], float)
+        self.assertGreaterEqual(result["dominant_class_ratio"], 0.0)
+        self.assertLessEqual(result["dominant_class_ratio"], 1.0)
 
         # Output mask dimensions must match original image (96, 128)
         self.assertEqual(result["mask"].shape, (96, 128))

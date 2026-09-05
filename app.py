@@ -691,8 +691,9 @@ if image_bytes is not None:
                     sem_overlay = create_segmentation_overlay(loaded_image, seg_result["mask"], alpha=0.45)
                     st.image(sem_overlay, caption="SegFormer-B0 Semantic Feature Overlay", use_container_width=True)
                 with col_d2:
-                    st.image(seg_result["colored_mask"], caption="150-Class Semantic Mask (ADE20K)", use_container_width=True)
-                    st.write(f"**Dominant Class:** `{seg_result['dominant_class']}` ({seg_result['dominant_class_ratio']*100:.1f}%)")
+                    dom_class = seg_result.get("dominant_class", (seg_result["class_statistics"][0]["class_name"] if seg_result.get("class_statistics") else "Unknown"))
+                    dom_ratio = seg_result.get("dominant_class_ratio", ((seg_result["class_statistics"][0]["percentage"] / 100.0) if seg_result.get("class_statistics") else 0.0))
+                    st.write(f"**Dominant Class:** `{dom_class}` ({dom_ratio*100:.1f}%)")
 
             with diag_t2:
                 col_d3, col_d4 = st.columns(2)

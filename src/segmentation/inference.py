@@ -242,6 +242,8 @@ def segment_image(
     # 5. Extract statistics
     stats = get_class_statistics(pred_mask, id2label)
     detected_classes = [s["class_name"] for s in stats]
+    dominant_class = stats[0]["class_name"] if stats else "Unknown"
+    dominant_class_ratio = (stats[0]["percentage"] / 100.0) if stats else 0.0
 
     # 6. Generate visual representations
     colored_mask = create_colored_mask(pred_mask, palette=palette)
@@ -254,6 +256,8 @@ def segment_image(
         "class_statistics": stats,
         "detected_classes": detected_classes,
         "num_classes_detected": len(detected_classes),
+        "dominant_class": dominant_class,
+        "dominant_class_ratio": dominant_class_ratio,
         "id2label": id2label,
         "model_name": model_bundle.get("model_name", DEFAULT_MODEL_ID),
         "device": device,
