@@ -12,8 +12,13 @@ from src.segmentation import (
     generate_color_palette,
     DEFAULT_MODEL_ID,
 )
-from src.geometry import extract_boundaries
-from src.vectorization import generate_parcel_polygons
+from src.geometry import extract_boundaries, extract_feature_binary_mask, render_boundary_overlay
+from src.vectorization import (
+    generate_candidate_parcels,
+    generate_parcel_polygons,
+    parcels_to_geojson_dict,
+    render_parcel_overlay,
+)
 from src.change_detection import detect_cadastral_changes
 from src.utils import format_area_sqm, export_geojson, load_image, get_image_metadata, preprocess_for_model
 
@@ -31,13 +36,16 @@ class TestCadastralPrototypeSmoke(unittest.TestCase):
         self.assertTrue(callable(generate_color_palette))
         self.assertEqual(DEFAULT_MODEL_ID, "nvidia/segformer-b0-finetuned-ade-512-512")
 
-    def test_geometry_skeleton(self):
-        res = extract_boundaries(mask=None)
-        self.assertIsInstance(res, list)
+    def test_geometry_exports(self):
+        self.assertTrue(callable(extract_boundaries))
+        self.assertTrue(callable(extract_feature_binary_mask))
+        self.assertTrue(callable(render_boundary_overlay))
 
-    def test_vectorization_skeleton(self):
-        res = generate_parcel_polygons(boundaries=[])
-        self.assertIsInstance(res, list)
+    def test_vectorization_exports(self):
+        self.assertTrue(callable(generate_candidate_parcels))
+        self.assertTrue(callable(generate_parcel_polygons))
+        self.assertTrue(callable(parcels_to_geojson_dict))
+        self.assertTrue(callable(render_parcel_overlay))
 
     def test_change_detection_skeleton(self):
         res = detect_cadastral_changes([], [])

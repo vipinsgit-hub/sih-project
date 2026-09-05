@@ -1,7 +1,8 @@
 """
 SIH Cadastral AI Prototype
-Milestone 3: AI Feature & Semantic Segmentation Pipeline
+Milestone 4: AI Feature Segmentation, Boundary Extraction & Candidate Parcel Vectorization
 """
+import json
 import os
 import pandas as pd
 import streamlit as st
@@ -20,12 +21,22 @@ from src.segmentation.inference import (
     create_segmentation_overlay,
     DEFAULT_MODEL_ID,
 )
+from src.geometry.boundary import (
+    extract_boundaries,
+    render_boundary_overlay,
+    DEFAULT_PARCEL_FEATURE_CLASSES,
+)
+from src.vectorization.polygons import (
+    generate_candidate_parcels,
+    parcels_to_geojson_dict,
+    render_parcel_overlay,
+)
 
 # ---------------------------------------------------------
 # Page Configuration
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="CadastralAI - Drone Parcel Mapping & Segmentation",
+    page_title="CadastralAI - Drone Parcel Mapping & Vectorization",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -87,6 +98,15 @@ st.markdown("""
         font-size: 0.88rem;
         color: #92400E;
     }
+    .section-banner {
+        background: #F8FAFC;
+        border-radius: 6px;
+        padding: 0.6rem 1rem;
+        border-left: 4px solid #3B82F6;
+        margin-top: 1.2rem;
+        margin-bottom: 0.8rem;
+        font-weight: 600;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -99,7 +119,7 @@ def get_cached_model(model_id: str = DEFAULT_MODEL_ID):
     return load_segmentation_model(model_id)
 
 # ---------------------------------------------------------
-# Sidebar
+# Sidebar Configuration
 # ---------------------------------------------------------
 with st.sidebar:
     st.image("https://img.icons8.com/isometric/100/map-marker.png", width=56)
@@ -108,24 +128,32 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### 🛠️ Active Milestone")
-    st.markdown("**Milestone 3**: AI Feature & Semantic Segmentation")
+    st.markdown("**Milestone 4**: Boundary Extraction & Parcel Generation")
     
     st.markdown("---")
-    st.markdown("### 🧠 Model Configuration")
-    model_choice = st.selectbox(
-        "Semantic Segmentation Model",
-        options=[DEFAULT_MODEL_ID],
-        index=0,
-        help="Lightweight Transformer model pre-trained for semantic scene parsing"
+    st.markdown("### 📐 Vectorization Parameters")
+    min_parcel_area = st.slider(
+        "Min Area Filter (pixels²)",
+        min_value=20,
+        max_value=2000,
+        value=200,
+        step=20,
+        help="Discard noisy segments smaller than this pixel area"
     )
-    
+    simplification_tol = st.slider(
+        "Polygon Simplification (Douglas-Peucker)",
+        min_value=0.5,
+        max_value=10.0,
+        value=2.0,
+        step=0.5,
+        help="Tolerance distance for edge regularization"
+    )
     overlay_alpha = st.slider(
-        "Overlay Transparency (Alpha)",
+        "Visual Alpha Opacity",
         min_value=0.1,
         max_value=0.9,
-        value=0.45,
-        step=0.05,
-        help="Blending weight between original drone photo and AI segmentation map"
+        value=0.40,
+        step=0.05
     )
 
     st.markdown("---")
@@ -135,19 +163,19 @@ with st.sidebar:
 # Main Application Content
 # ---------------------------------------------------------
 st.markdown('<div class="main-header">AI Cadastral Mapping</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Automated Urban Parcel Feature Extraction & Semantic Segmentation</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Automated Urban Parcel Feature Extraction, Boundary Regularization & Vectorization</div>', unsafe_allow_html=True)
 
 # Disclaimer Box
 st.markdown("""
 <div class="disclaimer-box">
     <strong>⚠️ Technical Distinction & Prototype Notice:</strong>
-    The AI segmentation stage identifies physical visual elements (buildings, roads, walls, vegetation, ground).
-    It extracts candidate geometry for subsequent parcel regularizers and does <strong>not</strong> independently create legally binding cadastral land ownership records.
+    Candidate parcel polygons generated here are <strong>AI-assisted geometric approximations</strong> derived from physical visual features (structures, boundary walls, fences).
+    They do <strong>not</strong> represent legally official land titles. Area and perimeter values are measured strictly in <strong>pixel units</strong> (px², px) unless real-world georeferencing/GSD calibration is applied.
 </div>
 """, unsafe_allow_html=True)
 
 # Main Workspace Tabs
-tab_analysis, tab_workflow = st.tabs(["🚀 Cadastral AI Analysis", "ℹ️ Architecture & Methodology"])
+tab_analysis, tab_workflow = st.tabs(["🚀 Cadastral AI Pipeline", "ℹ️ Methodology & Architecture"])
 
 with tab_analysis:
     st.subheader("1. Aerial / Drone Survey Input")
@@ -198,62 +226,151 @@ with tab_analysis:
 
             st.markdown("---")
 
-            # Run Segmentation Button
+            # ---------------------------------------------------------
+            # Stage 2: AI Feature Segmentation
+            # ---------------------------------------------------------
             st.subheader("2. AI Semantic Feature Segmentation")
             col_btn, col_info = st.columns([1, 2])
             with col_btn:
                 run_ai = st.button("⚡ Run AI Feature Segmentation", type="primary", use_container_width=True)
 
-            # Execution logic
             if run_ai or "seg_result" in st.session_state:
                 if run_ai:
-                    with st.spinner("🧠 Loading AI SegFormer model & computing semantic feature map..."):
-                        model_bundle = get_cached_model(model_choice)
+                    with st.spinner("🧠 Computing semantic scene parsing with SegFormer Transformer..."):
+                        model_bundle = get_cached_model(DEFAULT_MODEL_ID)
                         seg_result = segment_image(loaded_image, model_bundle)
                         st.session_state["seg_result"] = seg_result
+                        st.session_state.pop("parcel_result", None)  # Reset downstream parcel result on re-run
                 else:
                     seg_result = st.session_state["seg_result"]
 
-                # Display Visual Results
-                st.markdown("### 🗺️ Visual Segmentation Diagnostics")
+                # Quick Diagnostics View
+                with st.expander("👁️ View AI Semantic Segmentation Diagnostics", expanded=False):
+                    v_tab1, v_tab2 = st.tabs(["Semantic Overlay", "Color Mask"])
+                    with v_tab1:
+                        dynamic_overlay = create_segmentation_overlay(
+                            loaded_image,
+                            seg_result["mask"],
+                            alpha=overlay_alpha
+                        )
+                        st.image(dynamic_overlay, caption="AI Semantic Feature Map", use_container_width=True)
+                    with v_tab2:
+                        st.image(seg_result["colored_mask"], caption="Semantic Classes", use_container_width=True)
+
+                st.markdown("---")
+
+                # ---------------------------------------------------------
+                # Stage 3 & 4: Boundary Extraction & Parcel Vectorization
+                # ---------------------------------------------------------
+                st.subheader("3. Candidate Parcel Boundary Extraction & Vectorization")
                 
-                v_tab1, v_tab2, v_tab3 = st.tabs(["Overlay Blended Map", "Color-Coded Semantic Mask", "Original Survey Photo"])
+                col_poly_btn, col_poly_hint = st.columns([1, 2])
+                with col_poly_btn:
+                    extract_btn = st.button("📐 Extract Candidate Parcels", type="primary", use_container_width=True)
 
-                with v_tab1:
-                    # Dynamically recompute overlay based on current alpha slider
-                    dynamic_overlay = create_segmentation_overlay(
-                        loaded_image,
-                        seg_result["mask"],
-                        alpha=overlay_alpha,
-                        palette=model_bundle.get("palette") if "model_bundle" in locals() else None
-                    )
-                    st.image(dynamic_overlay, caption=f"AI Semantic Segmentation Overlay (Alpha: {overlay_alpha:.2f})", use_container_width=True)
+                if extract_btn or "parcel_result" in st.session_state:
+                    if extract_btn:
+                        with st.spinner("🔍 Extracting contours, regularizing polygons, and assigning parcel IDs..."):
+                            # 1. Boundary extraction
+                            boundary_data = extract_boundaries(
+                                seg_result["mask"],
+                                target_class_ids=DEFAULT_PARCEL_FEATURE_CLASSES,
+                                min_area=min_parcel_area,
+                                apply_morphology=True
+                            )
+                            # 2. Polygon regularization & parcel feature generation
+                            parcel_data = generate_candidate_parcels(
+                                boundary_data["contours"],
+                                tolerance=simplification_tol,
+                                min_area=min_parcel_area,
+                                id_prefix="P-"
+                            )
+                            # Combine results
+                            st.session_state["boundary_data"] = boundary_data
+                            st.session_state["parcel_data"] = parcel_data
+                            st.session_state["parcel_result"] = True
+                    else:
+                        boundary_data = st.session_state["boundary_data"]
+                        parcel_data = st.session_state["parcel_data"]
 
-                with v_tab2:
-                    st.image(seg_result["colored_mask"], caption="Semantic Class Mask (Color-Coded by ADE20K Feature Categories)", use_container_width=True)
+                    parcels = parcel_data["parcels"]
 
-                with v_tab3:
-                    st.image(loaded_image, caption=f"Original Input: {metadata['filename']}", use_container_width=True)
+                    # Vector Diagnostics Metrics
+                    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+                    with m_col1:
+                        st.metric("Detected Boundary Regions", boundary_data["total_regions_found"])
+                    with m_col2:
+                        st.metric("Noise Filtered Regions", boundary_data["rejected_count"])
+                    with m_col3:
+                        st.metric("Valid Candidate Parcels", parcel_data["valid_parcels_count"])
+                    with m_col4:
+                        st.metric("Geometry Regularization", f"Tol: {simplification_tol} px")
 
-                # Detected Features Section
-                st.markdown("### 🏷️ Identified Land Features")
-                
-                badges_html = "".join([f'<span class="badge-primary">{c}</span>' for c in seg_result["detected_classes"]])
-                st.markdown(badges_html, unsafe_allow_html=True)
+                    # Visual Map Tabs
+                    st.markdown("### 🗺️ Parcel Vector Diagnostics")
+                    p_tab1, p_tab2, p_tab3 = st.tabs([
+                        "Candidate Parcel Polygons",
+                        "Extracted Boundary Edges",
+                        "Original Aerial Photo"
+                    ])
 
-                # Class Statistics Table
-                st.markdown("### 📊 Semantic Feature Statistics")
-                df_stats = pd.DataFrame(seg_result["class_statistics"])
-                if not df_stats.empty:
-                    df_stats.rename(columns={
-                        "class_name": "Detected Semantic Feature",
-                        "class_id": "Class ID",
-                        "pixel_count": "Pixel Count",
-                        "percentage": "Area Coverage (%)"
-                    }, inplace=True)
-                    st.dataframe(df_stats[["Detected Semantic Feature", "Class ID", "Pixel Count", "Area Coverage (%)"]], use_container_width=True, hide_index=True)
-                
-                st.success("✔ AI Semantic Segmentation Completed successfully. Ready for Milestone 4 (Boundary Extraction & Polygon Regularization).")
+                    with p_tab1:
+                        parcel_overlay = render_parcel_overlay(
+                            loaded_image,
+                            parcels,
+                            boundary_color=(0, 220, 255),
+                            fill_color=(0, 180, 255),
+                            fill_alpha=overlay_alpha,
+                            show_labels=True
+                        )
+                        st.image(parcel_overlay, caption="AI-Assisted Candidate Parcel Boundaries with IDs", use_container_width=True)
+
+                    with p_tab2:
+                        b_overlay = render_boundary_overlay(
+                            loaded_image,
+                            boundary_data["contours"],
+                            line_color=(255, 220, 0),
+                            thickness=2
+                        )
+                        st.image(b_overlay, caption="Raw Detected Boundary Contours", use_container_width=True)
+
+                    with p_tab3:
+                        st.image(loaded_image, caption=f"Original Survey: {metadata['filename']}", use_container_width=True)
+
+                    # Interactive Candidate Parcel Attributes Table
+                    st.markdown("### 📋 Candidate Parcel Registry")
+                    
+                    if parcels:
+                        table_rows = []
+                        for p in parcels:
+                            table_rows.append({
+                                "Parcel ID": p["parcel_id"],
+                                "Pixel Area (px²)": f"{p['pixel_area']:,.1f}",
+                                "Pixel Perimeter (px)": f"{p['pixel_perimeter']:,.1f}",
+                                "Vertices": p["vertex_count"],
+                                "Solidity": f"{p['solidity'] * 100:.1f}%",
+                                "Centroid (X, Y)": f"({p['centroid_pixel'][0]}, {p['centroid_pixel'][1]})",
+                                "Status": p["status"],
+                                "Source": p["source"],
+                            })
+                        df_parcels = pd.DataFrame(table_rows)
+                        st.dataframe(df_parcels, use_container_width=True, hide_index=True)
+
+                        # GeoJSON Serialization & Download
+                        geojson_data = parcels_to_geojson_dict(parcels, image_metadata=metadata)
+                        geojson_str = json.dumps(geojson_data, indent=2)
+
+                        st.download_button(
+                            label="📥 Download Candidate Parcels (GeoJSON)",
+                            data=geojson_str,
+                            file_name=f"candidate_parcels_{metadata['filename'].split('.')[0]}.geojson",
+                            mime="application/geo+json",
+                            help="Export candidate parcel polygons in standard GeoJSON format"
+                        )
+                    else:
+                        st.warning("No candidate parcels met the minimum area criteria. Try reducing the 'Min Area Filter' in the sidebar.")
+
+                    st.success("✔ Milestone 4 Complete: Boundary extraction, Douglas-Peucker regularization, and GeoJSON polygon generation operational.")
 
         except ImageProcessingError as e:
             st.error(f"⚠️ Image Error: {str(e)}")
@@ -264,12 +381,13 @@ with tab_analysis:
 
 with tab_workflow:
     st.markdown("""
-    ### 🔬 AI Segmentation Model Details
-    - **Architecture**: `SegFormer-B0` (Hierarchical Transformer Encoder + Lightweight MLP Decoder)
-    - **Pretrained Dataset**: ADE20K (150 semantic categories including buildings, roads, vegetation, walls, fences, terrain)
-    - **Inference Hardware**: Dynamic (CUDA GPU if available, optimized multi-threaded CPU fallback)
-    - **Resolution**: Native auto-upsampled to source drone imagery dimensions for pixel-level boundary fidelity.
+    ### 🔄 Geometric Boundary Extraction Pipeline
     
-    ### 🛡️ Cadastral Engineering Principle
-    Visual feature segmentation extracts candidate obstacle edges, building footprints, and roads. In subsequent milestones, geometric regularization algorithms will convert these raw visual masks into closed, topology-valid parcel polygons for surveyor verification.
+    1. **Feature Mask Filtering**: Extracts target structure semantic classes (`building`, `wall`, `fence`, `roof`).
+    2. **Morphological Filtering**: Performs morphological opening and closing to bridge small gaps and suppress isolated noise pixels.
+    3. **Contour Extraction**: Identifies closed external topological boundaries via OpenCV.
+    4. **Area Threshold Filtering**: Rejects degenerate contours below configurable area thresholds.
+    5. **Polygon Regularization & Simplification**: Employs Douglas-Peucker line simplification (`preserve_topology=True`) to convert noisy raster edges into crisp vector lines.
+    6. **Topology Validation & Auto-Repair**: Runs Shapely `is_valid` / `make_valid` routines to guarantee valid, self-intersection-free polygon geometries.
+    7. **Parcel Attribute Assignment**: Assigns sequential IDs (`P-001`, `P-002`...), pixel area, perimeter, and solidity metrics.
     """)

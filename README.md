@@ -10,7 +10,7 @@ Manual cadastral surveying of urban land parcels is labor-intensive, time-consum
 
 > **Key Technical Distinction**: The system distinguishes between **Building Footprints** and **Legal Land Parcels**, employing contour regularization, boundary wall/fence detection, and historical cadastral alignment rather than treating building boundaries as property lines.
 
-> **Prototype Disclaimer**: Pretrained AI segmentation models extract preliminary visual semantic features (buildings, roads, walls, vegetation, ground terrain). They **do not independently determine legal land ownership or official cadastral boundaries**, but rather provide candidate geometric features for downstream GIS processing and certified surveyor verification.
+> **Prototype Disclaimer**: Pretrained AI segmentation models and geometric vectorization routines extract **AI-Assisted Candidate Parcel Boundaries**. They **do not independently determine legal land ownership or official cadastral boundaries**, but rather provide candidate geometric features for downstream GIS processing and certified surveyor verification. Area and perimeter measurements are strictly in **pixel units** (px², px) unless real-world georeferencing/GSD calibration is provided.
 
 ---
 
@@ -23,9 +23,9 @@ Image Preprocessing (Contrast, Tiling, RGB Normalization, Tensor Prep)  [COMPLET
         ↓
 AI Feature & Semantic Segmentation (SegFormer Transformer ADE20K)       [COMPLETED]
         ↓
-Boundary Extraction & Edge Regularization
+Boundary Extraction & Morphological Noise Filtering                    [COMPLETED]
         ↓
-Parcel Polygon Vectorization & Topology Validation
+Parcel Polygon Vectorization, Regularization & GeoJSON Generation      [COMPLETED]
         ↓
 GIS Geospatial Visualization (Folium / Web Map)
         ↓
@@ -40,27 +40,23 @@ Standard GeoJSON / Shapefile Export
 
 ---
 
-## 🧠 AI Semantic Segmentation Engine
+## 📐 Geometric Boundary Extraction & Polygon Regularization
 
-The prototype utilizes **`nvidia/segformer-b0-finetuned-ade-512-512`**, a lightweight hierarchical Vision Transformer (ViT) with an MLP decoder pre-trained on ADE20K (150 semantic scene parsing categories).
-
-### Why SegFormer-B0?
-1. **Compact & Fast**: Only ~3.7M parameters (~14MB), allowing fast, responsive inference on standard laptops and CPU environments.
-2. **Comprehensive Urban Feature Coverage**: Pixel-level multi-class prediction across key urban landscape categories:
-   - `Building`, `House`, `Roof`
-   - `Wall`, `Fence`
-   - `Road`, `Path`, `Sidewalk`
-   - `Grass`, `Tree`, `Plant`, `Earth / Ground`
-   - `Water`, `Field`
-3. **Multi-scale Feature Fusion**: Captures both fine boundary edges and broad parcel contexts.
+1. **Semantic Feature Filtering**: Extracts target structure semantic classes (`building`, `wall`, `fence`, `roof`).
+2. **Morphological Cleanup**: Morphological opening (noise suppression) and closing (gap bridging) via OpenCV.
+3. **Contour Extraction & Area Filtering**: Identifies external closed contours, filtering out speckles below configurable minimum pixel area thresholds.
+4. **Polygon Regularization**: Douglas-Peucker geometric simplification (`preserve_topology=True`) converts jagged raster pixels into crisp vector edges.
+5. **Topology Validation & Auto-Repair**: Shapely `is_valid` / `make_valid` checks ensure non-self-intersecting, topologically valid planar polygons.
+6. **Sequential Parcel Metadata**: Assigns IDs (`P-001`, `P-002`...), computes pixel area (`px²`), pixel perimeter (`px`), vertex count, and solidity scores.
+7. **GeoJSON Serialization**: Formats features into standard OGC-compliant GeoJSON `FeatureCollection` structures.
 
 ---
 
 ## 🛠️ Technology Stack
 
 - **Frontend / UI**: Streamlit, Streamlit-Folium
-- **Computer Vision & AI**: PyTorch, Hugging Face Transformers, OpenCV, NumPy, Pillow
-- **Geospatial & Vector**: GeoPandas, Shapely, Folium, GeoJSON
+- **Computer Vision & AI**: PyTorch, Hugging Face Transformers, OpenCV (`opencv-python-headless`), NumPy, Pillow
+- **Geospatial & Vector**: Shapely, GeoPandas, Folium, GeoJSON
 - **Data & Analytics**: Pandas
 
 ---
@@ -70,42 +66,43 @@ The prototype utilizes **`nvidia/segformer-b0-finetuned-ade-512-512`**, a lightw
 ```
 sih-project/
 │
-├── app.py                      # Streamlit application entry point
-├── requirements.txt            # Python dependencies
-├── README.md                   # Project documentation
-├── .gitignore                  # Git ignore specifications
+├── app.py                             # Streamlit application entry point
+├── requirements.txt                   # Python dependencies
+├── README.md                          # Project documentation
+├── .gitignore                         # Git ignore specifications
 │
-├── src/                        # Core algorithmic modules
+├── src/                               # Core algorithmic modules
 │   ├── __init__.py
-│   ├── segmentation/           # AI feature & semantic segmentation
+│   ├── segmentation/                  # AI feature & semantic segmentation
 │   │   ├── __init__.py
-│   │   └── inference.py        # Model loading, segmentation, statistics, overlay
-│   ├── geometry/               # Boundary extraction & geometric processing
+│   │   └── inference.py               # Model loading, segmentation, statistics, overlay
+│   ├── geometry/                      # Boundary extraction & geometric processing
 │   │   ├── __init__.py
-│   │   └── boundary.py
-│   ├── vectorization/          # Polygon generation & regularization
+│   │   └── boundary.py                # Contours, morphology, boundary overlays
+│   ├── vectorization/                 # Polygon generation & regularization
 │   │   ├── __init__.py
-│   │   └── polygons.py
-│   ├── change_detection/       # Historical comparison & encroachment flagging
+│   │   └── polygons.py                # Shapely validation, simplification, GeoJSON
+│   ├── change_detection/              # Historical comparison & encroachment flagging
 │   │   ├── __init__.py
 │   │   └── compare.py
-│   └── utils/                  # Geospatial & image processing utilities
+│   └── utils/                         # Geospatial & image processing utilities
 │       ├── __init__.py
-│       ├── helpers.py          # GeoJSON export and formatters
-│       └── image_processing.py # Safe image loader, metadata, and AI preprocessor
+│       ├── helpers.py                 # GeoJSON export and formatters
+│       └── image_processing.py        # Safe image loader, metadata, and AI preprocessor
 │
 ├── data/
-│   ├── input/                  # Raw input drone/aerial images
-│   ├── cadastral/              # Historical cadastral survey GeoJSON/records
-│   └── demo/                   # Demo benchmark sample datasets
+│   ├── input/                         # Raw input drone/aerial images
+│   ├── cadastral/                     # Historical cadastral survey GeoJSON/records
+│   └── demo/                          # Demo benchmark sample datasets
 │
-├── models/                     # Model weights & configurations
-├── outputs/                    # Exported GeoJSON, maps, and reports
-└── tests/                      # Automated smoke & unit tests
+├── models/                            # Model weights & configurations
+├── outputs/                           # Exported GeoJSON, maps, and reports
+└── tests/                             # Automated smoke & unit tests
     ├── __init__.py
     ├── test_smoke.py
     ├── test_image_processing.py
-    └── test_segmentation.py
+    ├── test_segmentation.py
+    └── test_boundary_and_polygons.py
 ```
 
 ---
@@ -144,7 +141,7 @@ streamlit run app.py
 - [x] **Milestone 1**: Project architecture, environment setup, modular structure, smoke test suite.
 - [x] **Milestone 2**: Aerial image input validation, metadata extraction, RGB normalization, and AI tensor preprocessing pipeline.
 - [x] **Milestone 3**: AI-based feature segmentation using SegFormer Transformer, class statistics, and alpha-blended diagnostic overlays.
-- [ ] **Milestone 4**: Parcel vectorization, polygon regularization & topology validation.
+- [x] **Milestone 4**: Boundary extraction, morphological noise filtering, Douglas-Peucker polygon regularization, candidate parcel attributes, and GeoJSON export.
 - [ ] **Milestone 5**: Interactive GIS visualization with Folium.
 - [ ] **Milestone 6**: Historical cadastral comparison & encroachment detection.
 - [ ] **Milestone 7**: Surveyor verification interface & GeoJSON export.
