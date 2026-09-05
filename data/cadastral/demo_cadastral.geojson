@@ -8,7 +8,7 @@
     }
   },
   "metadata": {
-    "source": "Demo cadastral dataset — synthetic data for prototype evaluation",
+    "source": "Demo cadastral dataset — synthetic benchmark records for prototype evaluation",
     "jurisdiction": "Urban Cadastral Survey Division (Demo)",
     "survey_year": 2020,
     "coordinate_system": "Normalized Pixel Space (800x600 reference)",
@@ -21,7 +21,7 @@
       "properties": {
         "cadastral_id": "P-001",
         "owner_reference": "Property Plot 101",
-        "registered_area_px": 14400.0,
+        "registered_area_px": 22500.0,
         "land_use": "Residential",
         "description": "Top-Left Urban Plot (High Match benchmark)"
       },
@@ -29,11 +29,11 @@
         "type": "Polygon",
         "coordinates": [
           [
-            [80.0, 80.0],
-            [240.0, 80.0],
-            [240.0, 180.0],
-            [80.0, 180.0],
-            [80.0, 80.0]
+            [50.0, 50.0],
+            [200.0, 50.0],
+            [200.0, 200.0],
+            [50.0, 200.0],
+            [50.0, 50.0]
           ]
         ]
       }
@@ -44,19 +44,19 @@
       "properties": {
         "cadastral_id": "P-002",
         "owner_reference": "Property Plot 102",
-        "registered_area_px": 17500.0,
+        "registered_area_px": 22500.0,
         "land_use": "Commercial",
-        "description": "Top-Right Urban Plot (Minor Boundary Offset benchmark)"
+        "description": "Top-Right Urban Plot (Potential Encroachment benchmark - 4,500 px² protrusion)"
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [530.0, 60.0],
-            [710.0, 60.0],
-            [710.0, 190.0],
-            [530.0, 190.0],
-            [530.0, 60.0]
+            [250.0, 50.0],
+            [400.0, 50.0],
+            [400.0, 200.0],
+            [250.0, 200.0],
+            [250.0, 50.0]
           ]
         ]
       }
@@ -67,19 +67,19 @@
       "properties": {
         "cadastral_id": "P-003",
         "owner_reference": "Property Plot 103",
-        "registered_area_px": 11000.0,
+        "registered_area_px": 22500.0,
         "land_use": "Residential",
-        "description": "Bottom-Left Plot (Potential Encroachment benchmark - AI structure extends beyond legal boundary)"
+        "description": "Bottom-Left Plot (Potential Encroachment benchmark - 7,500 px² lateral protrusion)"
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [120.0, 420.0],
-            [240.0, 420.0],
-            [240.0, 520.0],
-            [120.0, 520.0],
-            [120.0, 420.0]
+            [50.0, 250.0],
+            [200.0, 250.0],
+            [200.0, 400.0],
+            [50.0, 400.0],
+            [50.0, 250.0]
           ]
         ]
       }
@@ -90,19 +90,19 @@
       "properties": {
         "cadastral_id": "P-004",
         "owner_reference": "Property Plot 104",
-        "registered_area_px": 21000.0,
+        "registered_area_px": 22500.0,
         "land_use": "Industrial",
-        "description": "Bottom-Right Plot (Boundary Mismatch benchmark - significant geometry deviation)"
+        "description": "Bottom-Right Plot (Significant Boundary Mismatch benchmark)"
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
-            [500.0, 390.0],
-            [650.0, 390.0],
-            [650.0, 490.0],
-            [500.0, 490.0],
-            [500.0, 390.0]
+            [250.0, 250.0],
+            [400.0, 250.0],
+            [400.0, 400.0],
+            [250.0, 400.0],
+            [250.0, 250.0]
           ]
         ]
       }
@@ -113,7 +113,7 @@
       "properties": {
         "cadastral_id": "P-005",
         "owner_reference": "Vacant Plot 105",
-        "registered_area_px": 9000.0,
+        "registered_area_px": 12000.0,
         "land_use": "Agricultural/Open",
         "description": "Historical Record Plot (No active AI structure detected benchmark)"
       },
@@ -121,11 +121,11 @@
         "type": "Polygon",
         "coordinates": [
           [
-            [260.0, 40.0],
-            [340.0, 40.0],
-            [340.0, 150.0],
-            [260.0, 150.0],
-            [260.0, 40.0]
+            [450.0, 50.0],
+            [530.0, 50.0],
+            [530.0, 200.0],
+            [450.0, 200.0],
+            [450.0, 50.0]
           ]
         ]
       }

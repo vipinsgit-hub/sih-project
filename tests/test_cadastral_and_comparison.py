@@ -87,17 +87,17 @@ class TestCadastralAndComparison(unittest.TestCase):
 
         # Create candidate parcels simulating AI detections
         candidate_parcels = [
-            # Candidate 1: Exact match with CAD-001 (80,80) to (240,180)
+            # Candidate 1: Exact match with P-001 (50, 50) to (200, 200)
             {
                 "parcel_id": "P-001",
-                "geometry": Polygon([(80, 80), (240, 80), (240, 180), (80, 180)]),
-                "pixel_area": 16000.0,
+                "geometry": Polygon([(50, 50), (200, 50), (200, 200), (50, 200)]),
+                "pixel_area": 22500.0,
             },
-            # Candidate 2: Encroaching outside CAD-003 (120,420)-(240,520) -> extending to (100,420)-(260,520)
+            # Candidate 2: Encroaching outside P-003 (50, 250)-(200, 400) -> extending to (50, 250)-(250, 400)
             {
                 "parcel_id": "P-003",
-                "geometry": Polygon([(100, 420), (260, 420), (260, 520), (100, 520)]),
-                "pixel_area": 16000.0,
+                "geometry": Polygon([(50, 250), (250, 250), (250, 400), (50, 400)]),
+                "pixel_area": 30000.0,
             }
         ]
 
@@ -114,8 +114,8 @@ class TestCadastralAndComparison(unittest.TestCase):
         candidate_parcels = [
             {
                 "parcel_id": "P-001",
-                "geometry": Polygon([(80, 80), (240, 80), (240, 180), (80, 180)]),
-                "pixel_area": 16000.0,
+                "geometry": Polygon([(50, 50), (200, 50), (200, 200), (50, 200)]),
+                "pixel_area": 22500.0,
             }
         ]
         comp_res = compare_cadastral_vs_candidate_parcels(cadastral_parcels, candidate_parcels)
