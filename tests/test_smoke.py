@@ -7,7 +7,7 @@ from src.segmentation import run_segmentation_inference
 from src.geometry import extract_boundaries
 from src.vectorization import generate_parcel_polygons
 from src.change_detection import detect_cadastral_changes
-from src.utils import format_area_sqm, export_geojson
+from src.utils import format_area_sqm, export_geojson, load_image, get_image_metadata, preprocess_for_model
 
 
 class TestCadastralPrototypeSmoke(unittest.TestCase):
@@ -36,6 +36,11 @@ class TestCadastralPrototypeSmoke(unittest.TestCase):
         formatted = format_area_sqm(10500.5)
         self.assertIn("sq.m", formatted)
         self.assertIn("ha", formatted)
+
+    def test_image_processing_exports(self):
+        self.assertTrue(callable(load_image))
+        self.assertTrue(callable(get_image_metadata))
+        self.assertTrue(callable(preprocess_for_model))
 
 
 if __name__ == "__main__":

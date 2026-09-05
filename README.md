@@ -17,7 +17,7 @@ Manual cadastral surveying of urban land parcels is labor-intensive, time-consum
 ```
 Aerial / Drone Imagery
         ↓
-Image Preprocessing (Contrast, Tiling, Normalization)
+Image Preprocessing (Contrast, Tiling, RGB Normalization, Tensor Prep)  [COMPLETED]
         ↓
 AI Feature & Boundary Segmentation (Deep Learning / CV)
         ↓
@@ -71,9 +71,10 @@ sih-project/
 │   ├── change_detection/       # Historical comparison & encroachment flagging
 │   │   ├── __init__.py
 │   │   └── compare.py
-│   └── utils/                  # Geospatial helpers, formatters, GeoJSON export
+│   └── utils/                  # Geospatial & image processing utilities
 │       ├── __init__.py
-│       └── helpers.py
+│       ├── helpers.py          # GeoJSON export and formatters
+│       └── image_processing.py # Safe image loader, metadata, and AI preprocessor
 │
 ├── data/
 │   ├── input/                  # Raw input drone/aerial images
@@ -84,7 +85,8 @@ sih-project/
 ├── outputs/                    # Exported GeoJSON, maps, and reports
 └── tests/                      # Automated smoke & unit tests
     ├── __init__.py
-    └── test_smoke.py
+    ├── test_smoke.py
+    └── test_image_processing.py
 ```
 
 ---
@@ -97,7 +99,7 @@ sih-project/
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/vipinsgit-hub/sih-project.git
+git clone https://github.com/vipingsit-hub/sih-project.git
 cd sih-project
 ```
 
@@ -106,7 +108,7 @@ cd sih-project
 pip install -r requirements.txt
 ```
 
-### 4. Run Smoke Tests
+### 4. Run Smoke & Unit Tests
 ```bash
 python -m unittest discover tests
 ```
@@ -121,7 +123,7 @@ streamlit run app.py
 ## 📋 Development Roadmap
 
 - [x] **Milestone 1**: Project architecture, environment setup, modular structure, smoke test suite.
-- [ ] **Milestone 2**: Image upload & preprocessing pipeline.
+- [x] **Milestone 2**: Aerial image input validation, metadata extraction, RGB normalization, and AI tensor preprocessing pipeline.
 - [ ] **Milestone 3**: AI-based feature segmentation & boundary extraction.
 - [ ] **Milestone 4**: Parcel vectorization, polygon regularization & topology validation.
 - [ ] **Milestone 5**: Interactive GIS visualization with Folium.
