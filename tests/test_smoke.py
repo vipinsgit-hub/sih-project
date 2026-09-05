@@ -19,6 +19,14 @@ from src.vectorization import (
     parcels_to_geojson_dict,
     render_parcel_overlay,
 )
+from src.geospatial import (
+    load_cadastral_geojson,
+    get_cadastral_statistics,
+    calculate_spatial_overlap,
+    classify_discrepancy,
+    compare_cadastral_vs_candidate_parcels,
+)
+from src.visualization import render_gis_comparison_map
 from src.change_detection import detect_cadastral_changes
 from src.utils import format_area_sqm, export_geojson, load_image, get_image_metadata, preprocess_for_model
 
@@ -46,6 +54,14 @@ class TestCadastralPrototypeSmoke(unittest.TestCase):
         self.assertTrue(callable(generate_parcel_polygons))
         self.assertTrue(callable(parcels_to_geojson_dict))
         self.assertTrue(callable(render_parcel_overlay))
+
+    def test_geospatial_and_gis_exports(self):
+        self.assertTrue(callable(load_cadastral_geojson))
+        self.assertTrue(callable(get_cadastral_statistics))
+        self.assertTrue(callable(calculate_spatial_overlap))
+        self.assertTrue(callable(classify_discrepancy))
+        self.assertTrue(callable(compare_cadastral_vs_candidate_parcels))
+        self.assertTrue(callable(render_gis_comparison_map))
 
     def test_change_detection_skeleton(self):
         res = detect_cadastral_changes([], [])

@@ -1,6 +1,6 @@
 """
 SIH Cadastral AI Prototype
-Milestone 4: AI Feature Segmentation, Boundary Extraction & Candidate Parcel Vectorization
+Milestone 5: GIS Visualization & Spatial Cadastral Comparison
 """
 import json
 import os
@@ -31,12 +31,23 @@ from src.vectorization.polygons import (
     parcels_to_geojson_dict,
     render_parcel_overlay,
 )
+from src.geospatial.cadastral import (
+    load_cadastral_geojson,
+    get_cadastral_statistics,
+    CadastralDataError,
+)
+from src.geospatial.comparison import (
+    compare_cadastral_vs_candidate_parcels,
+)
+from src.visualization.map import (
+    render_gis_comparison_map,
+)
 
 # ---------------------------------------------------------
 # Page Configuration
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="CadastralAI - Drone Parcel Mapping & Vectorization",
+    page_title="CadastralAI - GIS Visualization & Comparison",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -76,36 +87,48 @@ st.markdown("""
         color: #0F172A;
         font-weight: 700;
     }
-    .badge-primary {
-        display: inline-block;
-        padding: 0.25rem 0.6rem;
-        background: #EFF6FF;
-        color: #1D4ED8;
-        border: 1px solid #BFDBFE;
-        border-radius: 9999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin-right: 0.4rem;
-        margin-bottom: 0.4rem;
-    }
     .disclaimer-box {
         background-color: #FFFBEB;
         border-left: 4px solid #F59E0B;
         padding: 0.8rem 1rem;
         border-radius: 4px;
-        margin-top: 1rem;
+        margin-top: 0.8rem;
         margin-bottom: 1rem;
         font-size: 0.88rem;
         color: #92400E;
     }
-    .section-banner {
-        background: #F8FAFC;
-        border-radius: 6px;
-        padding: 0.6rem 1rem;
-        border-left: 4px solid #3B82F6;
-        margin-top: 1.2rem;
-        margin-bottom: 0.8rem;
+    .status-match {
+        background-color: #DCFCE7;
+        color: #166534;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
         font-weight: 600;
+        font-size: 0.82rem;
+    }
+    .status-minor {
+        background-color: #FEF9C3;
+        color: #854D0E;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.82rem;
+    }
+    .status-mismatch {
+        background-color: #FEE2E2;
+        color: #991B1B;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.82rem;
+    }
+    .status-encroach {
+        background-color: #FEE2E2;
+        color: #B91C1C;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-weight: 700;
+        border: 1px solid #FCA5A5;
+        font-size: 0.82rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -128,33 +151,42 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### 🛠️ Active Milestone")
-    st.markdown("**Milestone 4**: Boundary Extraction & Parcel Generation")
+    st.markdown("**Milestone 5**: GIS Visualization & Cadastral Comparison")
     
     st.markdown("---")
-    st.markdown("### 📐 Vectorization Parameters")
-    min_parcel_area = st.slider(
-        "Min Area Filter (pixels²)",
-        min_value=20,
-        max_value=2000,
-        value=200,
-        step=20,
-        help="Discard noisy segments smaller than this pixel area"
-    )
-    simplification_tol = st.slider(
-        "Polygon Simplification (Douglas-Peucker)",
-        min_value=0.5,
-        max_value=10.0,
-        value=2.0,
-        step=0.5,
-        help="Tolerance distance for edge regularization"
-    )
-    overlay_alpha = st.slider(
-        "Visual Alpha Opacity",
-        min_value=0.1,
-        max_value=0.9,
-        value=0.40,
-        step=0.05
-    )
+    st.markdown("### ⚙️ Spatial Comparison Rules")
+    match_threshold = st.slider(
+        "Match IoU Threshold (%)",
+        min_value=70,
+        max_value=95,
+        value=85,
+        step=5,
+        help="Spatial overlap required to classify as MATCH"
+    ) / 100.0
+
+    minor_threshold = st.slider(
+        "Minor Mismatch IoU Threshold (%)",
+        min_value=40,
+        max_value=75,
+        value=60,
+        step=5,
+        help="Spatial overlap for MINOR MISMATCH category"
+    ) / 100.0
+
+    encroach_threshold = st.slider(
+        "Potential Encroachment Protrusion (%)",
+        min_value=5,
+        max_value=40,
+        value=15,
+        step=5,
+        help="Proportion of candidate polygon extending outside cadastral boundary to trigger potential encroachment alert"
+    ) / 100.0
+
+    st.markdown("---")
+    st.markdown("### 🗺️ GIS Layer Visibility")
+    show_cad_layer = st.checkbox("Layer 1: Cadastral Reference (Blue)", value=True)
+    show_cand_layer = st.checkbox("Layer 2: AI Candidate Parcels (Cyan)", value=True)
+    show_discrepancy_layer = st.checkbox("Layer 3: Potential Encroachment / Discrepancy (Red)", value=True)
 
     st.markdown("---")
     st.caption("Smart India Hackathon Prototype | Team CadastralAI")
@@ -162,28 +194,31 @@ with st.sidebar:
 # ---------------------------------------------------------
 # Main Application Content
 # ---------------------------------------------------------
-st.markdown('<div class="main-header">AI Cadastral Mapping</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Automated Urban Parcel Feature Extraction, Boundary Regularization & Vectorization</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">AI Cadastral Mapping & GIS Comparison</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Automated Urban Parcel Extraction, Cadastral Alignment & Potential Encroachment Detection</div>', unsafe_allow_html=True)
 
-# Disclaimer Box
+# Technical & Legal Notice
 st.markdown("""
 <div class="disclaimer-box">
-    <strong>⚠️ Technical Distinction & Prototype Notice:</strong>
-    Candidate parcel polygons generated here are <strong>AI-assisted geometric approximations</strong> derived from physical visual features (structures, boundary walls, fences).
-    They do <strong>not</strong> represent legally official land titles. Area and perimeter values are measured strictly in <strong>pixel units</strong> (px², px) unless real-world georeferencing/GSD calibration is applied.
+    <strong>⚠️ Technical Distinction & Legal Notice:</strong>
+    This prototype detects <em>potential spatial discrepancies</em> between existing cadastral survey geometry and AI-extracted physical structures.
+    Flagged anomalies represent <strong>Potential Encroachments / Boundary Discrepancies</strong> intended to guide on-site surveyor inspection and do <strong>not</strong> constitute legally confirmed title infringements.
 </div>
 """, unsafe_allow_html=True)
 
 # Main Workspace Tabs
-tab_analysis, tab_workflow = st.tabs(["🚀 Cadastral AI Pipeline", "ℹ️ Methodology & Architecture"])
+tab_pipeline, tab_workflow = st.tabs(["🚀 Cadastral AI Pipeline", "ℹ️ Methodology & Architecture"])
 
-with tab_analysis:
+with tab_pipeline:
+    # ---------------------------------------------------------
+    # Stage 1: Aerial Survey Input
+    # ---------------------------------------------------------
     st.subheader("1. Aerial / Drone Survey Input")
     
     col_input, col_sample = st.columns([3, 1])
     with col_input:
         uploaded_file = st.file_uploader(
-            "Upload aerial drone imagery (JPG, PNG, TIFF)",
+            "Upload aerial survey imagery (JPG, PNG, TIFF)",
             type=["jpg", "jpeg", "png", "tif", "tiff"],
             help="High-resolution survey imagery"
         )
@@ -240,7 +275,8 @@ with tab_analysis:
                         model_bundle = get_cached_model(DEFAULT_MODEL_ID)
                         seg_result = segment_image(loaded_image, model_bundle)
                         st.session_state["seg_result"] = seg_result
-                        st.session_state.pop("parcel_result", None)  # Reset downstream parcel result on re-run
+                        st.session_state.pop("parcel_result", None)
+                        st.session_state.pop("comp_result", None)
                 else:
                     seg_result = st.session_state["seg_result"]
 
@@ -248,11 +284,7 @@ with tab_analysis:
                 with st.expander("👁️ View AI Semantic Segmentation Diagnostics", expanded=False):
                     v_tab1, v_tab2 = st.tabs(["Semantic Overlay", "Color Mask"])
                     with v_tab1:
-                        dynamic_overlay = create_segmentation_overlay(
-                            loaded_image,
-                            seg_result["mask"],
-                            alpha=overlay_alpha
-                        )
+                        dynamic_overlay = create_segmentation_overlay(loaded_image, seg_result["mask"], alpha=0.40)
                         st.image(dynamic_overlay, caption="AI Semantic Feature Map", use_container_width=True)
                     with v_tab2:
                         st.image(seg_result["colored_mask"], caption="Semantic Classes", use_container_width=True)
@@ -260,120 +292,171 @@ with tab_analysis:
                 st.markdown("---")
 
                 # ---------------------------------------------------------
-                # Stage 3 & 4: Boundary Extraction & Parcel Vectorization
+                # Stage 3: Boundary Extraction & Parcel Vectorization
                 # ---------------------------------------------------------
                 st.subheader("3. Candidate Parcel Boundary Extraction & Vectorization")
-                
                 col_poly_btn, col_poly_hint = st.columns([1, 2])
                 with col_poly_btn:
                     extract_btn = st.button("📐 Extract Candidate Parcels", type="primary", use_container_width=True)
 
                 if extract_btn or "parcel_result" in st.session_state:
                     if extract_btn:
-                        with st.spinner("🔍 Extracting contours, regularizing polygons, and assigning parcel IDs..."):
-                            # 1. Boundary extraction
+                        with st.spinner("🔍 Extracting contours and regularizing polygons..."):
                             boundary_data = extract_boundaries(
                                 seg_result["mask"],
                                 target_class_ids=DEFAULT_PARCEL_FEATURE_CLASSES,
-                                min_area=min_parcel_area,
+                                min_area=200.0,
                                 apply_morphology=True
                             )
-                            # 2. Polygon regularization & parcel feature generation
                             parcel_data = generate_candidate_parcels(
                                 boundary_data["contours"],
-                                tolerance=simplification_tol,
-                                min_area=min_parcel_area,
+                                tolerance=2.0,
+                                min_area=200.0,
                                 id_prefix="P-"
                             )
-                            # Combine results
                             st.session_state["boundary_data"] = boundary_data
                             st.session_state["parcel_data"] = parcel_data
                             st.session_state["parcel_result"] = True
+                            st.session_state.pop("comp_result", None)
                     else:
                         boundary_data = st.session_state["boundary_data"]
                         parcel_data = st.session_state["parcel_data"]
 
                     parcels = parcel_data["parcels"]
 
-                    # Vector Diagnostics Metrics
-                    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-                    with m_col1:
-                        st.metric("Detected Boundary Regions", boundary_data["total_regions_found"])
-                    with m_col2:
-                        st.metric("Noise Filtered Regions", boundary_data["rejected_count"])
-                    with m_col3:
-                        st.metric("Valid Candidate Parcels", parcel_data["valid_parcels_count"])
-                    with m_col4:
-                        st.metric("Geometry Regularization", f"Tol: {simplification_tol} px")
+                    st.info(f"✔ Extracted {len(parcels)} candidate parcel polygons ({boundary_data['rejected_count']} noise regions filtered).")
 
-                    # Visual Map Tabs
-                    st.markdown("### 🗺️ Parcel Vector Diagnostics")
-                    p_tab1, p_tab2, p_tab3 = st.tabs([
-                        "Candidate Parcel Polygons",
-                        "Extracted Boundary Edges",
-                        "Original Aerial Photo"
-                    ])
+                    st.markdown("---")
 
-                    with p_tab1:
-                        parcel_overlay = render_parcel_overlay(
-                            loaded_image,
-                            parcels,
-                            boundary_color=(0, 220, 255),
-                            fill_color=(0, 180, 255),
-                            fill_alpha=overlay_alpha,
-                            show_labels=True
-                        )
-                        st.image(parcel_overlay, caption="AI-Assisted Candidate Parcel Boundaries with IDs", use_container_width=True)
+                    # ---------------------------------------------------------
+                    # Stage 4: Cadastral Comparison & GIS Visualization
+                    # ---------------------------------------------------------
+                    st.subheader("4. Historical Cadastral GIS Comparison & Encroachment Detection")
 
-                    with p_tab2:
-                        b_overlay = render_boundary_overlay(
-                            loaded_image,
-                            boundary_data["contours"],
-                            line_color=(255, 220, 0),
-                            thickness=2
-                        )
-                        st.image(b_overlay, caption="Raw Detected Boundary Contours", use_container_width=True)
-
-                    with p_tab3:
-                        st.image(loaded_image, caption=f"Original Survey: {metadata['filename']}", use_container_width=True)
-
-                    # Interactive Candidate Parcel Attributes Table
-                    st.markdown("### 📋 Candidate Parcel Registry")
+                    demo_cadastral_path = os.path.join("data", "cadastral", "demo_cadastral.geojson")
                     
-                    if parcels:
-                        table_rows = []
-                        for p in parcels:
-                            table_rows.append({
-                                "Parcel ID": p["parcel_id"],
-                                "Pixel Area (px²)": f"{p['pixel_area']:,.1f}",
-                                "Pixel Perimeter (px)": f"{p['pixel_perimeter']:,.1f}",
-                                "Vertices": p["vertex_count"],
-                                "Solidity": f"{p['solidity'] * 100:.1f}%",
-                                "Centroid (X, Y)": f"({p['centroid_pixel'][0]}, {p['centroid_pixel'][1]})",
-                                "Status": p["status"],
-                                "Source": p["source"],
-                            })
-                        df_parcels = pd.DataFrame(table_rows)
-                        st.dataframe(df_parcels, use_container_width=True, hide_index=True)
-
-                        # GeoJSON Serialization & Download
-                        geojson_data = parcels_to_geojson_dict(parcels, image_metadata=metadata)
-                        geojson_str = json.dumps(geojson_data, indent=2)
-
-                        st.download_button(
-                            label="📥 Download Candidate Parcels (GeoJSON)",
-                            data=geojson_str,
-                            file_name=f"candidate_parcels_{metadata['filename'].split('.')[0]}.geojson",
-                            mime="application/geo+json",
-                            help="Export candidate parcel polygons in standard GeoJSON format"
+                    cad_col1, cad_col2 = st.columns([3, 1])
+                    with cad_col1:
+                        cadastral_source = st.selectbox(
+                            "Cadastral Survey Reference Source",
+                            options=[f"Demo Cadastral Survey Records ({demo_cadastral_path})"],
+                            index=0
                         )
-                    else:
-                        st.warning("No candidate parcels met the minimum area criteria. Try reducing the 'Min Area Filter' in the sidebar.")
+                    with cad_col2:
+                        st.write("")
+                        st.write("")
+                        run_compare_btn = st.button("⚡ Run Spatial Cadastral Comparison", type="primary", use_container_width=True)
 
-                    st.success("✔ Milestone 4 Complete: Boundary extraction, Douglas-Peucker regularization, and GeoJSON polygon generation operational.")
+                    if run_compare_btn or "comp_result" in st.session_state:
+                        if run_compare_btn:
+                            with st.spinner("🗺️ Performing spatial topology comparison (IoU, Area Diff, Encroachment Analysis)..."):
+                                cad_parcels = load_cadastral_geojson(demo_cadastral_path)
+                                comp_data = compare_cadastral_vs_candidate_parcels(
+                                    cad_parcels,
+                                    parcels,
+                                    match_iou_threshold=match_threshold,
+                                    minor_iou_threshold=minor_threshold,
+                                    encroachment_threshold=encroach_threshold,
+                                )
+                                st.session_state["cad_parcels"] = cad_parcels
+                                st.session_state["comp_data"] = comp_data
+                                st.session_state["comp_result"] = True
+                        else:
+                            cad_parcels = st.session_state["cad_parcels"]
+                            comp_data = st.session_state["comp_data"]
+
+                        comp_results = comp_data["comparison_results"]
+
+                        # Comparison Summary Metrics
+                        c_m1, c_m2, c_m3, c_m4, c_m5 = st.columns(5)
+                        with c_m1:
+                            st.metric("Cadastral Records", comp_data["total_cadastral"])
+                        with c_m2:
+                            st.metric("AI Candidate Parcels", comp_data["total_candidates"])
+                        with c_m3:
+                            st.metric("Matches (IoU ≥ 85%)", comp_data["matches_count"])
+                        with c_m4:
+                            st.metric("Boundary Mismatches", comp_data["boundary_mismatches_count"] + comp_data["minor_mismatches_count"])
+                        with c_m5:
+                            st.metric("🚨 Potential Encroachments", comp_data["potential_encroachments_count"])
+
+                        # Multi-Layer GIS Visualization Map
+                        st.markdown("### 🗺️ Multi-Layer Cadastral GIS Map")
+
+                        # Optional Parcel Selector for focused inspection
+                        cad_id_options = ["All Parcels"] + [c["cadastral_id"] for c in comp_results]
+                        selected_plot = st.selectbox("🎯 Highlight Specific Parcel Plot:", options=cad_id_options, index=0)
+                        focused_id = None if selected_plot == "All Parcels" else selected_plot
+
+                        gis_map_img = render_gis_comparison_map(
+                            loaded_image,
+                            cadastral_parcels=cad_parcels,
+                            candidate_parcels=parcels,
+                            comparison_results=comp_results,
+                            show_cadastral=show_cad_layer,
+                            show_candidates=show_cand_layer,
+                            show_discrepancies=show_discrepancy_layer,
+                            selected_cadastral_id=focused_id
+                        )
+
+                        st.image(
+                            gis_map_img,
+                            caption="GIS Layered Map: Blue = Historical Cadastral Record | Cyan = AI Candidate Geometry | Red = Potential Encroachment Region",
+                            use_container_width=True
+                        )
+
+                        # Detailed Spatial Comparison Table
+                        st.markdown("### 📋 Spatial Comparison & Discrepancy Registry")
+                        
+                        table_data = []
+                        for r in comp_results:
+                            status_label = r["discrepancy_type"]
+                            if r["potential_encroachment"]:
+                                formatted_status = f"🚨 {status_label}"
+                            elif status_label == "MATCH":
+                                formatted_status = f"✔ {status_label}"
+                            elif status_label == "MINOR MISMATCH":
+                                formatted_status = f"⚠️ {status_label}"
+                            else:
+                                formatted_status = f"❌ {status_label}"
+
+                            table_data.append({
+                                "Cadastral ID": r["cadastral_id"],
+                                "Matched AI ID": r["candidate_id"],
+                                "Spatial Overlap (IoU)": f"{r['overlap_percentage']:.1f}%",
+                                "Cadastral Area (px²)": f"{r['cadastral_area_px']:,.1f}",
+                                "AI Area (px²)": f"{r['candidate_area_px']:,.1f}" if r['candidate_area_px'] > 0 else "0.0",
+                                "Excess Area (px²)": f"{r['excess_area_px']:,.1f}",
+                                "Discrepancy Status": formatted_status,
+                                "Land Use": r["land_use"],
+                            })
+
+                        df_comp = pd.DataFrame(table_data)
+                        st.dataframe(df_comp, use_container_width=True, hide_index=True)
+
+                        # Individual Plot Deep-Dive Inspector
+                        if focused_id is not None:
+                            target_record = next((r for r in comp_results if r["cadastral_id"] == focused_id), None)
+                            if target_record:
+                                st.markdown(f"#### 🔍 Deep Inspection: Plot `{focused_id}`")
+                                insp_col1, insp_col2 = st.columns(2)
+                                with insp_col1:
+                                    st.write(f"**Owner Reference:** {target_record['owner_reference']}")
+                                    st.write(f"**Land Use Category:** {target_record['land_use']}")
+                                    st.write(f"**Spatial Overlap (IoU):** {target_record['overlap_percentage']:.1f}%")
+                                    st.write(f"**Area Difference:** {target_record['area_difference_px']:+,.1f} px²")
+                                with insp_col2:
+                                    st.write(f"**Discrepancy Status:** `{target_record['discrepancy_type']}`")
+                                    st.write(f"**Potential Encroachment Alert:** `{'YES - Boundary Protrusion Detected' if target_record['potential_encroachment'] else 'No'}`")
+                                    st.write(f"**Protrusion Outside Legal Boundary:** `{target_record['excess_area_px']:,.1f} px² ({target_record['excess_ratio']*100:.1f}%)`")
+                                    st.caption("📌 Action Recommended: Flag for certified surveyor field inspection & deed verification.")
+
+                        st.success("✔ Milestone 5 Complete: Multi-layer GIS visualization, spatial IoU comparison, and potential encroachment alerts operational.")
 
         except ImageProcessingError as e:
             st.error(f"⚠️ Image Error: {str(e)}")
+        except CadastralDataError as e:
+            st.error(f"⚠️ Cadastral Data Error: {str(e)}")
         except Exception as e:
             st.error(f"⚠️ Pipeline Error: {str(e)}")
     else:
@@ -381,13 +464,14 @@ with tab_analysis:
 
 with tab_workflow:
     st.markdown("""
-    ### 🔄 Geometric Boundary Extraction Pipeline
+    ### 🔬 Spatial Cadastral Comparison Methodology
     
-    1. **Feature Mask Filtering**: Extracts target structure semantic classes (`building`, `wall`, `fence`, `roof`).
-    2. **Morphological Filtering**: Performs morphological opening and closing to bridge small gaps and suppress isolated noise pixels.
-    3. **Contour Extraction**: Identifies closed external topological boundaries via OpenCV.
-    4. **Area Threshold Filtering**: Rejects degenerate contours below configurable area thresholds.
-    5. **Polygon Regularization & Simplification**: Employs Douglas-Peucker line simplification (`preserve_topology=True`) to convert noisy raster edges into crisp vector lines.
-    6. **Topology Validation & Auto-Repair**: Runs Shapely `is_valid` / `make_valid` routines to guarantee valid, self-intersection-free polygon geometries.
-    7. **Parcel Attribute Assignment**: Assigns sequential IDs (`P-001`, `P-002`...), pixel area, perimeter, and solidity metrics.
+    1. **Cadastral Reference Parsing**: Historical survey GeoJSON records are ingested and validated for topological consistency.
+    2. **Spatial Topology Intersect**: Each cadastral plot is mapped to its best candidate AI structure using spatial intersection.
+    3. **Intersection over Union (IoU)**: Evaluates geometric alignment:
+       $$\\text{IoU} = \\frac{\\text{Area}(\\text{Cadastral} \\cap \\text{AI Candidate})}{\\text{Area}(\\text{Cadastral} \\cup \\text{AI Candidate})}$$
+    4. **Potential Encroachment Computation**: Isolates excess geometry extending beyond the legal property line:
+       $$\\text{Excess} = \\text{AI Candidate} \\setminus \\text{Cadastral Reference}$$
+       If the protrusion exceeds the configured threshold (default: 15%), the parcel is flagged as **POTENTIAL ENCROACHMENT**.
+    5. **Multi-Layer GIS Visualization**: Overlays historical deed boundaries (blue), AI detected boundaries (cyan), and potential encroachment zones (red) directly over the original drone survey photo.
     """)

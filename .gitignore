@@ -85,5 +85,6 @@ data/input/*
 !data/input/.gitkeep
 data/cadastral/*
 !data/cadastral/.gitkeep
+!data/cadastral/demo_cadastral.geojson
 outputs/*
 !outputs/.gitkeep

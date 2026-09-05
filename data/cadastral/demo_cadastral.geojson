@@ -1,0 +1,134 @@
+{
+  "type": "FeatureCollection",
+  "name": "Demo_Cadastral_Survey_Records",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84 (Pixel Coordinate Space)"
+    }
+  },
+  "metadata": {
+    "source": "Demo cadastral dataset — synthetic data for prototype evaluation",
+    "jurisdiction": "Urban Cadastral Survey Division (Demo)",
+    "survey_year": 2020,
+    "coordinate_system": "Normalized Pixel Space (800x600 reference)",
+    "legal_notice": "Synthetic benchmark dataset generated exclusively for prototype testing and spatial verification demonstration."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "CAD-001",
+      "properties": {
+        "cadastral_id": "CAD-001",
+        "owner_reference": "Property Plot 101",
+        "registered_area_px": 14400.0,
+        "land_use": "Residential",
+        "description": "Top-Left Urban Plot (High Match benchmark)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [80.0, 80.0],
+            [240.0, 80.0],
+            [240.0, 180.0],
+            [80.0, 180.0],
+            [80.0, 80.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CAD-002",
+      "properties": {
+        "cadastral_id": "CAD-002",
+        "owner_reference": "Property Plot 102",
+        "registered_area_px": 17500.0,
+        "land_use": "Commercial",
+        "description": "Top-Right Urban Plot (Minor Boundary Offset benchmark)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [530.0, 60.0],
+            [710.0, 60.0],
+            [710.0, 190.0],
+            [530.0, 190.0],
+            [530.0, 60.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CAD-003",
+      "properties": {
+        "cadastral_id": "CAD-003",
+        "owner_reference": "Property Plot 103",
+        "registered_area_px": 11000.0,
+        "land_use": "Residential",
+        "description": "Bottom-Left Plot (Potential Encroachment benchmark - AI structure extends beyond legal boundary)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [120.0, 420.0],
+            [240.0, 420.0],
+            [240.0, 520.0],
+            [120.0, 520.0],
+            [120.0, 420.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CAD-004",
+      "properties": {
+        "cadastral_id": "CAD-004",
+        "owner_reference": "Property Plot 104",
+        "registered_area_px": 21000.0,
+        "land_use": "Industrial",
+        "description": "Bottom-Right Plot (Boundary Mismatch benchmark - significant geometry deviation)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [500.0, 390.0],
+            [650.0, 390.0],
+            [650.0, 490.0],
+            [500.0, 490.0],
+            [500.0, 390.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CAD-005",
+      "properties": {
+        "cadastral_id": "CAD-005",
+        "owner_reference": "Vacant Plot 105",
+        "registered_area_px": 9000.0,
+        "land_use": "Agricultural/Open",
+        "description": "Historical Record Plot (No active AI structure detected benchmark)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [260.0, 40.0],
+            [340.0, 40.0],
+            [340.0, 150.0],
+            [260.0, 150.0],
+            [260.0, 40.0]
+          ]
+        ]
+      }
+    }
+  ]
+}
