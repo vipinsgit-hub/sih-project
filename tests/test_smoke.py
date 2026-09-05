@@ -32,7 +32,7 @@ from src.change_detection import (
     calculate_change_metrics,
     classify_discrepancy_and_risk,
 )
-from src.utils import format_area_sqm, export_geojson, load_image, get_image_metadata, preprocess_for_model
+from src.utils import format_area_sqm, export_geojson, encroachments_to_geojson_dict, load_image, get_image_metadata, preprocess_for_model
 
 
 class TestCadastralPrototypeSmoke(unittest.TestCase):
@@ -76,11 +76,12 @@ class TestCadastralPrototypeSmoke(unittest.TestCase):
         self.assertIn("change_records", res)
         self.assertIn("surveyor_queue", res)
 
-
     def test_utils(self):
         formatted = format_area_sqm(10500.5)
         self.assertIn("sq.m", formatted)
         self.assertIn("ha", formatted)
+        self.assertTrue(callable(encroachments_to_geojson_dict))
+
 
     def test_image_processing_exports(self):
         self.assertTrue(callable(load_image))

@@ -83,6 +83,38 @@ The system integrates a lightweight, layered 2D GIS visualizer:
 
 ---
 
+## 🎛️ Executive Dashboard & One-Click Demo Mode
+
+The final dashboard (`app.py`) provides an executive-ready spatial decision support interface:
+
+1. **⚡ One-Click AI Analysis Mode**:
+   - Executes the complete 7-stage pipeline in a single unified run with live progress tracking.
+   - Preprocesses input, runs SegFormer AI segmentation, extracts regularized boundaries, ingests cadastral survey deeds, executes spatial topology matching, isolates potential lateral protrusions, and generates the prioritized surveyor review queue.
+2. **📁 Deterministic Demo Benchmark**:
+   - One-click loading of benchmark aerial survey image (`data/demo/sample_drone_aerial.png`) and cadastral survey records (`data/cadastral/demo_cadastral.geojson`).
+   - Generates deterministic benchmark results:
+     - `P-001`: `MATCH` (IoU: 90.9%, Low Risk).
+     - `P-002`: `POTENTIAL ENCROACHMENT` (IoU: 74.0%, Protrusion: 4,500 px², High Risk).
+     - `P-003`: `POTENTIAL ENCROACHMENT` (IoU: 42.9%, Protrusion: 7,500 px², High Risk).
+     - `P-004`: `SIGNIFICANT BOUNDARY MISMATCH` (IoU: 44.9%, Area Δ: -50%, High Risk).
+     - `P-005`: `UNMATCHED` (No detected candidate structure, Medium Risk).
+3. **📊 Executive KPI Section**:
+   - Real-time metric cards: Total Cadastral Parcels, AI Candidates, Verified Matches, Discrepancies, High-Risk Flags, and Pending Surveyor Queue.
+4. **🗺️ Main GIS Map & Priority Findings**:
+   - Central multi-layer visualizer (Blue: Cadastral Deeds, Cyan: AI Candidates, Red: Potential Encroachment Protrusions).
+   - Priority Findings table sorted by risk severity with interactive plot highlighting.
+5. **🔍 Surveyor Inspection & Sign-Off Station**:
+   - High-resolution cropped zoom overlay comparing deed lines against physical structures and highlighted protrusion regions.
+   - Human-in-the-loop action buttons (`FLAG FOR ON-SITE SURVEY`, `MARK AS REVIEWED`, `RESET STATUS`) and field note tracking with session state persistence.
+6. **⚙️ AI Pipeline Diagnostics**:
+   - Step-by-step visualizer for technical evaluation (Raw Aerial $\rightarrow$ SegFormer ADE20K Semantics $\rightarrow$ Contours & Morphology $\rightarrow$ Douglas-Peucker Vectors).
+7. **📥 Reports & Multi-Format Export**:
+   - Candidate Parcels GeoJSON (`candidate_parcels.geojson`).
+   - Flagged Encroachments GeoJSON (`potential_encroachments.geojson`).
+   - Surveyor Audit Log CSV (`cadastral_surveyor_audit_report.csv`).
+
+---
+
 ## 🌐 Coordinate Reference System & Georeferencing Limitation
 
 - **Current Prototype Coordinates**: Standardized local/demo pixel coordinate space.
@@ -104,7 +136,7 @@ The system integrates a lightweight, layered 2D GIS visualizer:
 ```
 sih-project/
 │
-├── app.py                             # Streamlit application entry point (End-to-End Workflow)
+├── app.py                             # Streamlit Executive Dashboard (One-Click Demo & Surveyor Station)
 ├── requirements.txt                   # Python dependencies
 ├── README.md                          # Project documentation
 ├── .gitignore                         # Git ignore specifications
@@ -132,7 +164,7 @@ sih-project/
 │   │   └── map.py                     # Multi-layer GIS map & parcel detail deep-dive rendering
 │   └── utils/                         # Geospatial & image processing utilities
 │       ├── __init__.py
-│       ├── helpers.py                 # GeoJSON export and formatters
+│       ├── helpers.py                 # GeoJSON export, encroachment serializer, CSV formatters
 │       └── image_processing.py        # Safe image loader, metadata, and AI preprocessor
 │
 ├── data/
@@ -192,11 +224,10 @@ streamlit run app.py
 - [x] **Milestone 4**: Boundary extraction, morphological noise filtering, Douglas-Peucker polygon regularization, candidate parcel attributes, and GeoJSON export.
 - [x] **Milestone 5**: Layered GIS visualization, synthetic cadastral ingestion, spatial overlap (IoU) comparison.
 - [x] **Milestone 6**: Temporal change detection, potential encroachment analysis, risk tiers, and surveyor verification queue.
-- [ ] **Milestone 7**: Interactive surveyor verification tool, manual boundary vertex adjustment & official export.
+- [x] **Milestone 7**: Final hackathon dashboard, one-click demo mode, surveyor inspection station, and multi-format report exports.
 
 ---
 
 ## 📄 License & Disclaimer
 
 This prototype is built strictly as a technical proof-of-concept for the Smart India Hackathon. It is designed to serve as an **AI-assisted tool for certified surveyors** rather than independently generating legally binding cadastral land titles.
-
