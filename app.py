@@ -1,6 +1,6 @@
 """
 SIH Cadastral AI Prototype
-Milestone 7: Final Hackathon Dashboard & One-Click Demo Mode
+Milestone 9: Final Executive Dashboard & Hackathon UI/UX
 """
 import io
 import json
@@ -59,93 +59,158 @@ from src.visualization.map import (
 # Page Configuration & Metadata
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="CADASTRAL AI — Decision Support Dashboard",
+    page_title="SIH Cadastral AI — Executive Dashboard",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------
-# Professional Enterprise Styling
+# Professional Enterprise Government / GIS Styling
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #0F172A;
-        letter-spacing: -0.02em;
-        margin-bottom: 0.1rem;
+    /* Global Typography & Palette */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    .sub-header {
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: #334155;
-        margin-bottom: 0.1rem;
-    }
-    .tagline {
-        font-size: 0.92rem;
-        color: #64748B;
-        font-style: italic;
+    
+    .hero-container {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        color: #FFFFFF;
+        padding: 1.4rem 1.8rem;
+        border-radius: 12px;
         margin-bottom: 1rem;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+        border: 1px solid #334155;
     }
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #F8FAFC;
+        margin-bottom: 0.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .hero-subtitle {
+        font-size: 1.05rem;
+        color: #94A3B8;
+        font-weight: 500;
+        margin-bottom: 0.6rem;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    .status-ready {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #34D399;
+        border: 1px solid rgba(52, 211, 153, 0.4);
+    }
+    .status-complete {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #60A5FA;
+        border: 1px solid rgba(96, 165, 250, 0.4);
+    }
+    
+    .disclaimer-banner {
+        background-color: #FEF3C7;
+        border-left: 4px solid #D97706;
+        padding: 0.65rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.2rem;
+        font-size: 0.84rem;
+        color: #92400E;
+        line-height: 1.4;
+    }
+    
+    /* Executive KPI Cards */
     .kpi-card {
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 0.85rem 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 0.5rem;
+        border-radius: 10px;
+        padding: 0.9rem 1.1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
     }
     .kpi-title {
         font-size: 0.75rem;
         color: #64748B;
         text-transform: uppercase;
         font-weight: 700;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
     }
     .kpi-value {
-        font-size: 1.45rem;
+        font-size: 1.55rem;
         color: #0F172A;
         font-weight: 800;
-        margin-top: 0.1rem;
+        margin-top: 0.15rem;
+        letter-spacing: -0.02em;
     }
     .kpi-sub {
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         color: #94A3B8;
+        font-weight: 500;
     }
-    .disclaimer-banner {
-        background-color: #FFFBEB;
-        border-left: 4px solid #F59E0B;
-        padding: 0.75rem 1rem;
-        border-radius: 4px;
-        margin-bottom: 1.2rem;
-        font-size: 0.86rem;
-        color: #92400E;
-        line-height: 1.4;
-    }
+    
+    /* Legend Badges */
     .legend-badge {
         display: inline-block;
-        padding: 0.2rem 0.6rem;
-        border-radius: 4px;
+        padding: 0.25rem 0.65rem;
+        border-radius: 6px;
         font-weight: 600;
         font-size: 0.8rem;
         margin-right: 0.5rem;
+        margin-bottom: 0.3rem;
     }
     .badge-cadastral {
-        background-color: #DBEAFE;
-        color: #1E40AF;
+        background-color: #EFF6FF;
+        color: #1D4ED8;
         border: 1px solid #93C5FD;
     }
     .badge-candidate {
-        background-color: #CFFAFE;
-        color: #0E7490;
+        background-color: #ECFEFF;
+        color: #0891B2;
         border: 1px solid #67E8F9;
     }
     .badge-encroachment {
+        background-color: #FEF2F2;
+        color: #DC2626;
+        border: 1px solid #FCA5A5;
+    }
+    
+    /* Risk Badges */
+    .risk-pill {
+        display: inline-block;
+        padding: 0.2rem 0.55rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .risk-high {
         background-color: #FEE2E2;
         color: #991B1B;
-        border: 1px solid #FCA5A5;
+    }
+    .risk-medium {
+        background-color: #FEF3C7;
+        color: #92400E;
+    }
+    .risk-low {
+        background-color: #DCFCE7;
+        color: #166534;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -159,12 +224,12 @@ def get_cached_model(model_id: str = DEFAULT_MODEL_ID):
     return load_segmentation_model(model_id)
 
 # ---------------------------------------------------------
-# Sidebar Configuration & Controls
+# Sidebar Configuration & Spatial Rules
 # ---------------------------------------------------------
 with st.sidebar:
-    st.image("https://img.icons8.com/isometric/100/map-marker.png", width=52)
+    st.image("https://img.icons8.com/isometric/100/map-marker.png", width=48)
     st.title("Cadastral AI")
-    st.caption(f"Decision Support System v{__version__}")
+    st.caption(f"Decision Support Platform v{__version__}")
     st.markdown("---")
 
     st.markdown("### ⚙️ Spatial Analysis Rules")
@@ -196,53 +261,74 @@ with st.sidebar:
     ) / 100.0
 
     st.markdown("---")
-    st.markdown("### 🗺️ Map Layer Toggles")
-    show_cad_layer = st.checkbox("Layer 1: Cadastral Reference (Blue)", value=True)
-    show_cand_layer = st.checkbox("Layer 2: AI Candidate Parcels (Cyan)", value=True)
-    show_discrepancy_layer = st.checkbox("Layer 3: Potential Encroachment (Red)", value=True)
+    st.markdown("### 🗺️ GIS Map Layers")
+    show_cad_layer = st.checkbox("Layer 1: Cadastral Deed Reference (Blue)", value=True)
+    show_cand_layer = st.checkbox("Layer 2: AI Candidate Footprints (Cyan)", value=True)
+    show_discrepancy_layer = st.checkbox("Layer 3: Potential Encroachment Protrusions (Red)", value=True)
 
     st.markdown("---")
-    st.markdown("### ℹ️ Dataset Reference")
+    if st.button("🔄 Reset Analysis", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
+
+    st.markdown("---")
     st.caption("Benchmark Data: Synthetic Cadastral Survey Records (P-001 to P-005)")
-    st.caption("Coordinate System: Normalized Local Coordinate Space")
     st.caption("Smart India Hackathon Prototype")
 
 # ---------------------------------------------------------
-# Application Header & Disclaimer
+# HERO / HEADER
 # ---------------------------------------------------------
-st.markdown('<div class="main-header">CADASTRAL AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">AI-Assisted Land Boundary Monitoring & Change Detection</div>', unsafe_allow_html=True)
-st.markdown('<div class="tagline">"From aerial imagery to surveyor-ready spatial intelligence"</div>', unsafe_allow_html=True)
+is_pipeline_done = "pipeline_complete" in st.session_state and st.session_state["pipeline_complete"]
+status_badge_html = (
+    '<span class="status-badge status-complete">🟢 PIPELINE COMPLETE</span>'
+    if is_pipeline_done
+    else '<span class="status-badge status-ready">🟢 SYSTEM READY</span>'
+)
+
+st.markdown(f"""
+<div class="hero-container">
+    <div class="hero-title">
+        <span>🗺️ SIH Cadastral AI</span>
+        {status_badge_html}
+    </div>
+    <div class="hero-subtitle">
+        AI-Based Automated Urban Parcel Mapping & Cadastral Feature Extraction Using Drone Imagery
+    </div>
+    <div style="font-size: 0.85rem; color: #CBD5E1;">
+        Automated aerial computer vision, Douglas-Peucker vectorization, and multi-criteria spatial change detection for government surveyors.
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <div class="disclaimer-banner">
     <strong>⚖️ Decision-Support Notice:</strong>
-    This prototype identifies potential spatial discrepancies between historical cadastral records and current AI-extracted physical boundaries.
-    Flagged anomalies represent <strong>Potential Encroachments & Discrepancies</strong> designed to guide on-site surveyor inspection and do <strong>not</strong> constitute legally confirmed title infringements.
+    This prototype detects potential spatial discrepancies between historical cadastral records and AI-extracted physical structures.
+    Flagged boundaries represent <strong>Potential Encroachments & Variances</strong> to prioritize on-site field surveys and do <strong>not</strong> establish legal land title validity.
 </div>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Input Section & One-Click Execution Controls
+# PRIMARY DEMO CONTROLS
 # ---------------------------------------------------------
-input_card = st.container()
-with input_card:
-    col_upload, col_demo_btn, col_exec_btn = st.columns([2, 1, 1.2])
+input_col_upload, input_col_demo, input_col_run = st.columns([2.2, 1.2, 1.6])
 
-    with col_upload:
-        uploaded_file = st.file_uploader(
-            "Upload Aerial/Drone Survey Photo",
-            type=["jpg", "jpeg", "png", "tif", "tiff"],
-            help="High-resolution survey imagery"
-        )
-    with col_demo_btn:
-        st.write("")
-        st.write("")
-        use_demo = st.button("📁 Load Demo Aerial Survey", use_container_width=True)
-    with col_exec_btn:
-        st.write("")
-        st.write("")
-        run_full_pipeline = st.button("⚡ RUN COMPLETE AI ANALYSIS", type="primary", use_container_width=True)
+with input_col_upload:
+    uploaded_file = st.file_uploader(
+        "Upload Aerial/Drone Survey Image",
+        type=["jpg", "jpeg", "png", "tif", "tiff"],
+        help="High-resolution aerial ortho-mosaic or drone survey capture"
+    )
+
+with input_col_demo:
+    st.write("")
+    st.write("")
+    use_demo = st.button("📁 LOAD DEMO AERIAL SURVEY", use_container_width=True)
+
+with input_col_run:
+    st.write("")
+    st.write("")
+    run_full_pipeline = st.button("⚡ RUN COMPLETE AI & CADASTRAL PIPELINE", type="primary", use_container_width=True)
 
 # Resolve Image Source
 image_bytes = None
@@ -281,13 +367,13 @@ if image_bytes is not None:
 
         # Execute Full Pipeline if triggered or cached
         if run_full_pipeline or "pipeline_complete" not in st.session_state:
-            with st.status("⚡ Executing End-to-End Cadastral AI Analysis...", expanded=True) as status_box:
+            with st.status("⚡ Executing End-to-End Cadastral AI Pipeline...", expanded=True) as status_box:
                 # Step 1: Preprocessing
                 st.write("1️⃣ Ingesting & normalizing survey imagery...")
                 model_bundle = get_cached_model(DEFAULT_MODEL_ID)
                 
                 # Step 2: Semantic Segmentation
-                st.write("2️⃣ Performing semantic scene parsing with SegFormer Transformer...")
+                st.write("2️⃣ Performing semantic feature segmentation with SegFormer Transformer...")
                 seg_result = segment_image(loaded_image, model_bundle)
                 st.session_state["seg_result"] = seg_result
                 
@@ -309,12 +395,12 @@ if image_bytes is not None:
                 st.session_state["parcel_data"] = parcel_data
                 
                 # Step 4: Cadastral Reference Ingestion
-                st.write("4️⃣ Ingesting cadastral reference survey records...")
+                st.write("4️⃣ Ingesting reference cadastral deed records...")
                 cad_parcels = load_cadastral_geojson(demo_cadastral_path)
                 st.session_state["cad_parcels"] = cad_parcels
                 
                 # Step 5 & 6: Spatial Topology & Change Detection
-                st.write("5️⃣ Executing spatial topology comparison, area deltas & potential encroachment detection...")
+                st.write("5️⃣ Calculating spatial topology metrics & detecting potential lateral encroachments...")
                 change_data = detect_cadastral_changes(
                     cad_parcels,
                     parcel_data["parcels"],
@@ -325,9 +411,9 @@ if image_bytes is not None:
                 st.session_state["change_data"] = change_data
                 
                 # Step 7: Finalizing
-                st.write("6️⃣ Prioritizing surveyor verification queue & risk classification...")
+                st.write("6️⃣ Prioritizing surveyor review queue & risk classification...")
                 st.session_state["pipeline_complete"] = True
-                status_box.update(label="✔ Cadastral AI Analysis Complete", state="complete", expanded=False)
+                status_box.update(label="✔ Complete Cadastral AI Pipeline Executed Successfully", state="complete", expanded=False)
 
         # Retrieve pipeline data from session state
         change_data = st.session_state["change_data"]
@@ -345,78 +431,71 @@ if image_bytes is not None:
         )
 
         # ---------------------------------------------------------
-        # Executive KPI Cards
+        # EXECUTIVE KPI CARDS
         # ---------------------------------------------------------
-        st.markdown("---")
-        k1, k2, k3, k4, k5, k6 = st.columns(6)
+        st.markdown("### 📊 Executive Overview")
+        k1, k2, k3, k4, k5 = st.columns(5)
         with k1:
             st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-title">Cadastral Parcels</div>
+                <div class="kpi-title">Total Parcels</div>
                 <div class="kpi-value">{change_data['total_cadastral']}</div>
-                <div class="kpi-sub">Reference Plots</div>
+                <div class="kpi-sub">Cadastral Deed Records</div>
             </div>""", unsafe_allow_html=True)
         with k2:
             st.markdown(f"""
             <div class="kpi-card">
                 <div class="kpi-title">AI Candidates</div>
                 <div class="kpi-value">{change_data['total_candidates']}</div>
-                <div class="kpi-sub">Detected Structures</div>
+                <div class="kpi-sub">Detected Footprints</div>
             </div>""", unsafe_allow_html=True)
         with k3:
             st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-title">Matched Plots</div>
+                <div class="kpi-title">Verified Matches</div>
                 <div class="kpi-value" style="color:#166534;">{change_data['matches_count']}</div>
-                <div class="kpi-sub">IoU ≥ {int(match_threshold*100)}%</div>
+                <div class="kpi-sub">IoU ≥ {int(match_threshold*100)}% (Low Risk)</div>
             </div>""", unsafe_allow_html=True)
         with k4:
             st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-title">Discrepancies</div>
-                <div class="kpi-value" style="color:#854D0E;">{change_data['minor_discrepancies_count'] + change_data['significant_discrepancies_count']}</div>
-                <div class="kpi-sub">Boundary Variances</div>
+                <div class="kpi-title">High-Risk Findings</div>
+                <div class="kpi-value" style="color:#B91C1C;">{change_data['high_risk_count']}</div>
+                <div class="kpi-sub">{change_data['potential_encroachments_count']} Potential Encroachments</div>
             </div>""", unsafe_allow_html=True)
         with k5:
             st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-title">🚨 Encroachments</div>
-                <div class="kpi-value" style="color:#B91C1C;">{change_data['potential_encroachments_count']}</div>
-                <div class="kpi-sub">Protrusion Alerts</div>
-            </div>""", unsafe_allow_html=True)
-        with k6:
-            st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title">Surveyor Queue</div>
+                <div class="kpi-title">Surveyor Review</div>
                 <div class="kpi-value" style="color:#4338CA;">{pending_count}</div>
-                <div class="kpi-sub">Pending Review</div>
+                <div class="kpi-sub">Pending Field Sign-Off</div>
             </div>""", unsafe_allow_html=True)
 
         st.markdown("---")
 
         # ---------------------------------------------------------
-        # Main Dashboard Tabs
+        # VISUAL ANALYSIS TABS
         # ---------------------------------------------------------
-        tab_gis, tab_inspect, tab_diag, tab_export, tab_about = st.tabs([
-            "🗺️ Executive GIS & Priority Findings",
-            "🔍 Surveyor Inspection & Sign-Off",
-            "⚙️ AI Pipeline Diagnostics",
+        tab_gis, tab_inspect, tab_ai, tab_export, tab_method = st.tabs([
+            "🗺️ Executive GIS Dashboard",
+            "🔍 Surveyor Inspection",
+            "🤖 AI Pipeline",
             "📥 Reports & Export",
-            "ℹ️ Methodology & Architecture"
+            "ℹ️ Methodology"
         ])
 
         # ---------------------------------------------------------
-        # TAB 1: Executive GIS & Priority Findings
+        # TAB 1 — 🗺️ Executive GIS Dashboard
         # ---------------------------------------------------------
         with tab_gis:
-            st.markdown("### 🗺️ Multi-Layer Cadastral GIS Map")
+            st.markdown("### 🗺️ Cadastral Multi-Layer GIS Map")
 
             # Legend Badges
             st.markdown("""
-            <div style="margin-bottom: 0.8rem;">
-                <span class="legend-badge badge-cadastral">■ Blue: Cadastral Reference Boundary</span>
-                <span class="legend-badge badge-candidate">■ Cyan: AI Candidate Parcel Boundary</span>
-                <span class="legend-badge badge-encroachment">■ Red: Potential Encroachment / Extension Protrusion</span>
+            <div style="margin-bottom: 0.9rem;">
+                <span class="legend-badge badge-cadastral">■ Blue: Cadastral Reference Deed Boundary</span>
+                <span class="legend-badge badge-candidate">■ Cyan: AI Candidate Parcel Footprint</span>
+                <span class="legend-badge badge-encroachment">■ Crimson: Detected Protrusion / Encroachment Candidate</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -429,19 +508,25 @@ if image_bytes is not None:
                     "encroachment_geometry": r["potential_extension_geom"] if r["potential_encroachment"] else None,
                 })
 
-            col_map_view, col_map_ctrl = st.columns([3.5, 1])
+            col_map_view, col_map_ctrl = st.columns([3.6, 1.2])
 
             with col_map_ctrl:
-                st.markdown("#### 🎯 Plot Highlighter")
+                st.markdown("#### 🎯 Parcel Selector")
                 cad_id_options = ["All Parcels"] + [r["parcel_id"] for r in records]
-                selected_plot = st.selectbox("Highlight Specific Parcel:", options=cad_id_options, index=0)
+                selected_plot = st.selectbox("Focus on Specific Plot:", options=cad_id_options, index=0)
                 focused_id = None if selected_plot == "All Parcels" else selected_plot
                 
                 st.markdown("---")
                 st.markdown("#### 📊 Risk Distribution")
-                st.write(f"🔴 **High Risk:** {change_data['high_risk_count']} plots")
-                st.write(f"🟡 **Medium Risk:** {change_data['medium_risk_count']} plots")
-                st.write(f"🟢 **Low Risk:** {change_data['low_risk_count']} plots")
+                st.markdown(f"""
+                - 🔴 **HIGH:** `{change_data['high_risk_count']}` plots
+                - 🟡 **MEDIUM:** `{change_data['medium_risk_count']}` plots
+                - 🟢 **LOW:** `{change_data['low_risk_count']}` plots
+                """)
+                
+                st.markdown("---")
+                st.markdown("#### 💡 Quick Tip")
+                st.caption("Select **P-003** to inspect the primary demo case featuring a ~7,500 px² lateral building extension.")
 
             with col_map_view:
                 gis_map_img = render_gis_comparison_map(
@@ -456,7 +541,7 @@ if image_bytes is not None:
                 )
                 st.image(
                     gis_map_img,
-                    caption="Multi-Layer GIS Map: High-resolution aerial survey overlaid with reference deed vectors, AI physical footprints, and flagged lateral boundary extensions.",
+                    caption="Multi-Layer GIS Visualization: Aerial survey with cadastral reference (Blue), AI candidate (Cyan), and flagged encroachment protrusion (Crimson).",
                     use_container_width=True
                 )
 
@@ -483,7 +568,7 @@ if image_bytes is not None:
                     "Spatial Overlap (IoU)": f"{r['overlap_percentage']:.1f}%",
                     "Cadastral Area": f"{r['cadastral_area_px']:,.0f} px²",
                     "AI Area": f"{r['candidate_area_px']:,.0f} px²" if r['candidate_area_px'] > 0 else "0",
-                    "Potential Extension": f"{r['potential_extension_area_px']:,.0f} px²",
+                    "Potential Protrusion": f"{r['potential_extension_area_px']:,.0f} px²",
                     "Surveyor Status": curr_status,
                 })
 
@@ -491,11 +576,11 @@ if image_bytes is not None:
             st.dataframe(df_findings, use_container_width=True, hide_index=True)
 
         # ---------------------------------------------------------
-        # TAB 2: Surveyor Inspection & Sign-Off
+        # TAB 2 — 🔍 Surveyor Inspection
         # ---------------------------------------------------------
         with tab_inspect:
-            st.markdown("### 🔍 SURVEYOR INSPECTION STATION")
-            st.markdown("Deep-dive inspection workstation with high-resolution zoomed overlays and human-in-the-loop verification sign-off.")
+            st.markdown("### 🔍 SURVEYOR INSPECTION & SIGN-OFF STATION")
+            st.markdown("Deep-dive inspection station with high-resolution zoomed overlays and human-in-the-loop verification sign-off.")
 
             col_sel_p, col_empty = st.columns([2, 2])
             with col_sel_p:
@@ -503,7 +588,7 @@ if image_bytes is not None:
                     "Select Parcel to Inspect:",
                     options=[r["parcel_id"] for r in queue],
                     index=0,
-                    key="inspect_selector"
+                    key="inspect_selector_tab2"
                 )
 
             target_record = next((r for r in records if r["parcel_id"] == inspect_pid), None)
@@ -524,12 +609,12 @@ if image_bytes is not None:
                     )
                     st.image(
                         parcel_detail_img,
-                        caption=f"Zoom Detail: Parcel {inspect_pid} | Blue = Legal Deed | Cyan = Physical Structure | Red = Potential Protrusion | Orange = Missing Coverage",
+                        caption=f"Zoom Detail: Parcel {inspect_pid} | Blue = Legal Deed | Cyan = Physical Structure | Crimson = Potential Protrusion | Orange = Missing Coverage",
                         use_container_width=True
                     )
 
                 with col_detail_meta:
-                    st.markdown(f"#### Plot `{inspect_pid}` Analysis Profile")
+                    st.markdown(f"#### Plot `{inspect_pid}` Spatial Profile")
                     
                     m1, m2 = st.columns(2)
                     with m1:
@@ -539,14 +624,14 @@ if image_bytes is not None:
                         st.write(f"**Current AI Area:** `{target_record['candidate_area_px']:,.1f} px²`")
                     with m2:
                         st.write(f"**Area Difference:** `{target_record['area_difference_px']:+,.1f} px² ({target_record['area_difference_pct']:.1f}%)`")
-                        st.write(f"**Potential Extension Area:** `{target_record['potential_extension_area_px']:,.1f} px² ({target_record['extension_ratio']*100:.1f}%)`")
-                        st.write(f"**Prototype Risk:** `{target_record['risk_level']}`")
-                        st.write(f"**Discrepancy Category:** `{target_record['discrepancy_type']}`")
+                        st.write(f"**Potential Extension:** `{target_record['potential_extension_area_px']:,.1f} px² ({target_record['extension_ratio']*100:.1f}%)`")
+                        st.write(f"**Calculated Risk:** `{target_record['risk_level']}`")
+                        st.write(f"**Discrepancy Type:** `{target_record['discrepancy_type']}`")
 
                     st.markdown("---")
-                    st.markdown(f"**Current Status:** `{curr_surveyor_status}`")
+                    st.markdown(f"**Current Verification Status:** `{curr_surveyor_status}`")
 
-                    st.markdown("##### ✍️ Surveyor Verification Sign-Off")
+                    st.markdown("##### ✍️ Surveyor Actions & Sign-Off")
                     btn_c1, btn_c2, btn_c3 = st.columns(3)
                     with btn_c1:
                         if st.button("🚨 Flag for On-Site Survey", key=f"btn_flag_{inspect_pid}", use_container_width=True):
@@ -557,7 +642,7 @@ if image_bytes is not None:
                             st.session_state["surveyor_statuses"][inspect_pid] = "REVIEWED & VERIFIED"
                             st.rerun()
                     with btn_c3:
-                        if st.button("🔄 Reset", key=f"btn_rst_{inspect_pid}", use_container_width=True):
+                        if st.button("🔄 Reset Status", key=f"btn_rst_{inspect_pid}", use_container_width=True):
                             st.session_state["surveyor_statuses"][inspect_pid] = "PENDING SURVEYOR REVIEW"
                             st.rerun()
 
@@ -572,19 +657,19 @@ if image_bytes is not None:
                     if surveyor_note != current_notes:
                         st.session_state["surveyor_notes"][inspect_pid] = surveyor_note
 
-                    st.caption("📌 Human-in-the-Loop Audit Trail: Status updates and field notes persist across tabs in active session state.")
+                    st.caption("📌 Human-in-the-Loop Audit Trail: Decisions and notes persist in session state and are included in the downloadable audit package.")
 
         # ---------------------------------------------------------
-        # TAB 3: AI Pipeline Diagnostics
+        # TAB 3 — 🤖 AI Pipeline
         # ---------------------------------------------------------
-        with tab_diag:
-            st.markdown("### ⚙️ AI PIPELINE DIAGNOSTICS & INTERMEDIATE ARTIFACTS")
-            st.markdown("Technical inspection view demonstrating each stage of the computer vision and geometry pipeline.")
+        with tab_ai:
+            st.markdown("### 🤖 AI PROCESSING PIPELINE & INTERMEDIATE ARTIFACTS")
+            st.markdown("Visual progression of the 5-stage computer vision, geometry regularization, and spatial comparison pipeline.")
 
             diag_t1, diag_t2, diag_t3 = st.tabs([
-                "1️⃣ Semantic Feature Map",
+                "1️⃣ Semantic Feature Segmentation",
                 "2️⃣ Contours & Morphology",
-                "3️⃣ Regularized Vectors"
+                "3️⃣ Douglas-Peucker Vectors"
             ])
 
             with diag_t1:
@@ -623,11 +708,11 @@ if image_bytes is not None:
                     st.dataframe(pd.DataFrame(poly_metrics), use_container_width=True, hide_index=True)
 
         # ---------------------------------------------------------
-        # TAB 4: Reports & Export
+        # TAB 4 — 📥 Reports & Export
         # ---------------------------------------------------------
         with tab_export:
             st.markdown("### 📥 REPORTS & SURVEYOR AUDIT EXPORT")
-            st.markdown("Generate standard OGC GeoJSON vector files and CSV audit logs for downstream municipal GIS and field surveyor teams.")
+            st.markdown("Generate standard OGC GeoJSON vector files and CSV audit logs for municipal GIS databases and field surveyor rovers.")
 
             # 1. Candidate Parcels GeoJSON
             candidate_geojson_dict = parcels_to_geojson_dict(parcel_data["parcels"], image_metadata=metadata)
@@ -653,7 +738,7 @@ if image_bytes is not None:
                     "Area_Difference_Pct": r["area_difference_pct"],
                     "Potential_Extension_Area_px": r["potential_extension_area_px"],
                     "Discrepancy_Type": r["discrepancy_type"],
-                    "Prototype_Risk_Level": r["risk_level"],
+                    "Calculated_Risk_Level": r["risk_level"],
                     "Surveyor_Verification_Status": curr_status,
                     "Surveyor_Notes": notes,
                 })
@@ -696,34 +781,34 @@ if image_bytes is not None:
             st.dataframe(df_audit, use_container_width=True, hide_index=True)
 
         # ---------------------------------------------------------
-        # TAB 5: Methodology & Architecture
+        # TAB 5 — ℹ️ Methodology
         # ---------------------------------------------------------
-        with tab_about:
+        with tab_method:
             st.markdown("### ℹ️ METHODOLOGY & MATHEMATICAL FRAMEWORK")
             st.markdown("""
-            #### 1. End-to-End Processing Chain
+            #### 1. End-to-End Processing Progression
             ```
-            Aerial Survey Image
+            Aerial / Drone Survey Image
                     ↓
-            Standardized RGB Normalization & Tensor Preprocessing
+            Standardized RGB Normalization & Preprocessing (CLAHE / Tensor Format)
                     ↓
-            AI Semantic Scene Segmentation (SegFormer Transformer ADE20K)
+            SegFormer Semantic Scene Segmentation (150-Class Transformer ADE20K)
                     ↓
-            Structural Feature Filtering (Buildings, Roofs, Walls, Fences)
+            Target Feature Filtering (Buildings, Roofs, Walls, Fences)
                     ↓
-            Morphological Denoising & Contour Extraction (OpenCV)
+            Morphological Boundary Detection (OpenCV External Contours)
                     ↓
-            Douglas-Peucker Regularization & Shapely Topology Validation
+            Douglas-Peucker Polygon Regularization & Shapely Validation
                     ↓
-            Cadastral Reference Ingestion (GeoJSON)
+            Cadastral Deed Reference Ingestion (GeoJSON)
                     ↓
             Spatial Topology Intersection & IoU Geometric Alignment
                     ↓
             Change Detection & Potential Encroachment Isolation (Candidate ∖ Cadastral)
                     ↓
-            Risk Classification (LOW / MEDIUM / HIGH)
+            Multi-Criteria Risk Classification (LOW / MEDIUM / HIGH)
                     ↓
-            Human-in-the-Loop Surveyor Inspection & Sign-Off Station
+            Human-in-the-Loop Surveyor Verification & Sign-Off Station
             ```
 
             #### 2. Spatial Overlap Metric (IoU)
@@ -746,4 +831,4 @@ if image_bytes is not None:
     except Exception as e:
         st.error(f"⚠️ Pipeline Error: {str(e)}")
 else:
-    st.info("👆 Click **'📁 Load Demo Aerial Survey'** or upload an aerial survey image above, then click **'⚡ RUN COMPLETE AI ANALYSIS'** to begin.")
+    st.info("👆 Click **'📁 LOAD DEMO AERIAL SURVEY'** or upload an aerial survey image above, then click **'⚡ RUN COMPLETE AI & CADASTRAL PIPELINE'** to begin.")

@@ -34,28 +34,26 @@ streamlit run app.py
 
 ## 3. Loading the Benchmark Demo Image
 
-1. On the left sidebar, navigate to **1. Drone Aerial Image Input**.
-2. Click the **📁 Load Demo Aerial Survey** button.
-3. Observe the benchmark aerial image (512×512 px ortho-mosaic) render instantly with:
-   - File details (Dimensions, Channels, Aspect Ratio, Color Stats).
-   - RGB Channel Histograms and CLAHE Enhanced Preview.
+1. Click the prominent **`📁 LOAD DEMO AERIAL SURVEY`** button at the top of the dashboard.
+2. Observe the benchmark aerial image (512×512 px ortho-mosaic) load instantly.
 
 ---
 
 ## 4. Running the Complete AI Pipeline
 
-1. In the sidebar, click the prominent **⚡ RUN COMPLETE AI ANALYSIS** button.
+1. Click the primary button: **`⚡ RUN COMPLETE AI & CADASTRAL PIPELINE`**.
 2. The entire 5-stage pipeline executes in **< 1.5 seconds**:
-   - **Stage 1**: Contrast Limited Adaptive Histogram Equalization (CLAHE).
-   - **Stage 2**: AI Semantic Feature Segmentation (DeepLabV3+ / U-Net / Fallback).
+   - **Stage 1**: Standardized RGB Normalization & Tensor Preprocessing.
+   - **Stage 2**: AI Semantic Feature Segmentation (SegFormer Transformer ADE20K).
    - **Stage 3**: Contour & Boundary Vectorization with Douglas-Peucker Polygon Regularization.
-   - **Stage 4**: Cadastral Overlay & Spatial Discrepancy Analysis (IoU, Centroid Shift, Area Deviation).
+   - **Stage 4**: Cadastral Deed Overlay & Spatial Topology Intersection (IoU, Area Deltas).
    - **Stage 5**: Multi-Criteria Risk Classification & Priority Findings Ranking.
-3. Observe the top **Executive Summary KPI Cards** populate:
-   - **Total Cadastral Parcels Analyzed** (5)
-   - **Potential Encroachments Detected** (2 High Risk)
-   - **Total Potential Encroachment Area** (~12,000 px²)
-   - **High Risk Alerts** (3)
+3. Observe the top **Executive Overview KPI Cards** populate:
+   - **Total Parcels**: `5` (Cadastral Deed Records)
+   - **AI Candidates**: `4` (Detected Footprints)
+   - **Verified Matches**: `1` (`P-001`, Low Risk)
+   - **High-Risk Findings**: `3` (`P-002`, `P-003`, `P-004`)
+   - **Surveyor Review**: `5` (Pending Field Sign-Off)
 
 ---
 
@@ -63,49 +61,57 @@ streamlit run app.py
 
 Highlight parcel **`P-003`** to the judges as the primary showcase of AI change detection:
 1. In the **Priority Findings** table, point out `P-003`:
-   - **Status**: `POTENTIAL ENCROACHMENT`
-   - **Risk Level**: `HIGH`
+   - **Discrepancy Status**: `🚨 POTENTIAL ENCROACHMENT`
+   - **Risk Level**: `🔴 HIGH`
    - **Intersection over Union (IoU)**: `~42.9%`
-   - **Potential Encroachment Protrusion Area**: `~7,500 px²`
-2. Select `P-003` in the **Select Parcel to Inspect** dropdown.
+   - **Potential Extension / Protrusion Area**: `~7,500 px²`
+2. In the **Parcel Selector** dropdown, select `P-003` to isolate its bounding geometry.
 
 ---
 
-## 6. Demonstrating the Multi-Layer GIS Comparison
+## 6. Demonstrating the Tabbed Visual Analysis
 
-Navigate across the interactive tabs:
-- **Tab 1: 🗺️ Cadastral GIS Map**:
-  - Toggle **Layer 1 (Cadastral Records - Blue Outline)** vs **Layer 2 (AI-Derived Footprints - Green Fill)**.
-  - Inspect **Layer 3 (Encroachment Overlay - Bright Red/Magenta Protrusion)** clearly highlighting where physical ground construction extends beyond the official cadastral boundary.
-- **Tab 2: 📊 Discrepancy & Encroachment Analysis**:
-  - Point out the metrics: Centroid Shift (px), Area Delta %, IoU overlap, and Exact Spatial Coordinates.
-- **Tab 3: 🔍 AI Pipeline Diagnostics**:
-  - Show the 4-panel intermediate diagnostic view: Preprocessed Image $\rightarrow$ Segmentation Mask $\rightarrow$ Boundary Overlay $\rightarrow$ Regularized Candidate Polygons.
+Navigate across the 5 structured tabs:
+- **Tab 1: 🗺️ Executive GIS Dashboard**:
+  - Point out the 3 GIS layers:
+    - **Blue Outline**: Cadastral Reference Deed Boundary
+    - **Cyan Outline**: AI Candidate Parcel Footprint
+    - **Crimson Protrusion**: Detected Encroachment / Lateral Boundary Extension
+- **Tab 2: 🔍 Surveyor Inspection**:
+  - Deep-dive zoom detail for selected parcel (`P-003`).
+  - Side-by-side comparison metrics (Overlap %, Deed Area, AI Area, Area Difference).
+- **Tab 3: 🤖 AI Pipeline**:
+  - 3-panel diagnostic pipeline: Semantic Feature Overlay $\rightarrow$ Morphological Contours $\rightarrow$ Douglas-Peucker Regularized Vectors.
+- **Tab 4: 📥 Reports & Export**:
+  - Candidate Parcel GeoJSON, Encroachment GeoJSON, and CSV Audit Report downloads.
+- **Tab 5: ℹ️ Methodology**:
+  - Mathematical formulation of IoU, extension geometry, and future GeoTIFF / GSD georeferencing roadmap.
 
 ---
 
 ## 7. Demonstrating Surveyor Inspection & Sign-Off
 
-1. Switch to **Tab 4: 📝 Surveyor Inspection & Sign-Off**.
-2. Explain the governance principle: *"AI flags candidates; certified surveyors retain final authority."*
-3. Type field observations into the **Surveyor Field Observations** text area:
+1. Switch to **Tab 2: 🔍 Surveyor Inspection**.
+2. Explain the governance principle: *"AI flags candidates; certified revenue surveyors retain legal decision authority."*
+3. Type field notes into **Surveyor Field Notes / On-Site Instructions**:
    ```
-   Confirmed northern structural extension encroaches into public right-of-way. Dispatched field rover team for DGPS ground survey.
+   Flagged for boundary wall inspection
    ```
-4. Click **🚩 Flag for On-Site Field Survey** or **✅ Mark Survey Reviewed / Verified**.
-5. Observe the live audit log update with the timestamp, decision, and surveyor notes.
+4. Click **`🚨 Flag for On-Site Survey`** or **`✓ Mark as Reviewed`**.
+5. Observe the status update in real time and persist across all dashboard views.
 
 ---
 
 ## 8. Exporting Audit Reports
 
-1. Scroll down to the **📥 Export Audit Package & Reports** section.
+1. Switch to **Tab 4: 📥 Reports & Export**.
 2. Demonstrate instant export capabilities:
-   - **Download GeoJSON**: For direct import into QGIS, ArcGIS, or municipal spatial databases.
-   - **Download CSV Audit Report**: For administrative records, legal review, and revenue workflow integration.
+   - **📄 Download Candidate Parcels (GeoJSON)**: For QGIS / ArcGIS ingestion.
+   - **🚨 Download Encroachments (GeoJSON)**: Flagged lateral protrusion polygons.
+   - **📊 Download Surveyor Audit Report (CSV)**: Complete audit log with surveyor notes.
 
 ---
 
 ## 9. Resetting the Application
 
-- Click the **🔄 Reset Analysis** button in the sidebar to clear all session state and return the dashboard to its initial clean state for the next demonstration.
+- Click **`🔄 Reset Analysis`** in the left sidebar to clear all session state and return the dashboard to its initial clean state for the next demonstration.
