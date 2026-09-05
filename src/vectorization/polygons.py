@@ -205,16 +205,16 @@ def parcels_to_geojson_dict(
         geom = p["geometry"]
         feat = {
             "type": "Feature",
-            "id": p["parcel_id"],
+            "id": p.get("parcel_id", "unknown"),
             "geometry": mapping(geom),
             "properties": {
-                "parcel_id": p["parcel_id"],
-                "pixel_area": p["pixel_area"],
-                "pixel_perimeter": p["pixel_perimeter"],
-                "vertex_count": p["vertex_count"],
-                "solidity": p["solidity"],
-                "source": p["source"],
-                "status": p["status"],
+                "parcel_id": p.get("parcel_id", "unknown"),
+                "pixel_area": p.get("pixel_area", round(float(geom.area), 2) if hasattr(geom, "area") else 0.0),
+                "pixel_perimeter": p.get("pixel_perimeter", round(float(geom.length), 2) if hasattr(geom, "length") else 0.0),
+                "vertex_count": p.get("vertex_count", len(geom.exterior.coords) if hasattr(geom, "exterior") else 0),
+                "solidity": p.get("solidity", 1.0),
+                "source": p.get("source", "AI-Assisted Boundary Extraction"),
+                "status": p.get("status", "Candidate"),
                 "unit": "pixels",
                 "notice": "Candidate parcel geometry extracted by AI prototype. Pending certified surveyor verification."
             }

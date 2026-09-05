@@ -99,6 +99,15 @@ class TestBoundaryAndPolygons(unittest.TestCase):
         self.assertEqual(feat["id"], "P-001")
         self.assertIn("pixel_area", feat["properties"])
         self.assertEqual(feat["properties"]["unit"], "pixels")
+        self.assertEqual(feat["properties"]["source"], "AI-Assisted Boundary Extraction")
+
+        # Test defensive serialization for parcels missing optional fields (e.g. source)
+        minimal_parcels = [
+            {"parcel_id": "MIN-001", "geometry": Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])}
+        ]
+        min_doc = parcels_to_geojson_dict(minimal_parcels)
+        self.assertEqual(min_doc["features"][0]["properties"]["source"], "AI-Assisted Boundary Extraction")
+        self.assertEqual(min_doc["features"][0]["properties"]["pixel_area"], 100.0)
 
     def test_visual_overlays(self):
         sample_img = Image.new("RGB", (300, 300), color=(150, 180, 140))

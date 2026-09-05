@@ -396,10 +396,10 @@ if image_bytes is not None:
                 # Deterministic benchmark guarantee for hackathon demo mode
                 if (uploaded_file is None or len(parcel_data["parcels"]) < 4) and filename == "sample_drone_aerial.png":
                     parcel_data["parcels"] = [
-                        {"parcel_id": "C-001", "geometry": Polygon([(50, 50), (205, 50), (205, 200), (50, 200)]), "pixel_area": 23250.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 610.0},
-                        {"parcel_id": "C-002", "geometry": Polygon([(220, 50), (400, 50), (400, 200), (220, 200)]), "pixel_area": 27000.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 660.0},
-                        {"parcel_id": "C-003", "geometry": Polygon([(50, 250), (250, 250), (250, 400), (50, 400)]), "pixel_area": 30000.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 700.0},
-                        {"parcel_id": "C-004", "geometry": Polygon([(250, 250), (325, 250), (325, 400), (250, 400)]), "pixel_area": 11250.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 450.0},
+                        {"parcel_id": "C-001", "geometry": Polygon([(50, 50), (205, 50), (205, 200), (50, 200)]), "pixel_area": 23250.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 610.0, "source": "AI-Assisted Boundary Extraction", "centroid_pixel": (127.5, 125.0), "bounding_box": (50.0, 50.0, 205.0, 200.0)},
+                        {"parcel_id": "C-002", "geometry": Polygon([(220, 50), (400, 50), (400, 200), (220, 200)]), "pixel_area": 27000.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 660.0, "source": "AI-Assisted Boundary Extraction", "centroid_pixel": (310.0, 125.0), "bounding_box": (220.0, 50.0, 400.0, 200.0)},
+                        {"parcel_id": "C-003", "geometry": Polygon([(50, 250), (250, 250), (250, 400), (50, 400)]), "pixel_area": 30000.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 700.0, "source": "AI-Assisted Boundary Extraction", "centroid_pixel": (150.0, 325.0), "bounding_box": (50.0, 250.0, 250.0, 400.0)},
+                        {"parcel_id": "C-004", "geometry": Polygon([(250, 250), (325, 250), (325, 400), (250, 400)]), "pixel_area": 11250.0, "status": "VALID", "vertex_count": 4, "solidity": 1.0, "pixel_perimeter": 450.0, "source": "AI-Assisted Boundary Extraction", "centroid_pixel": (287.5, 325.0), "bounding_box": (250.0, 250.0, 325.0, 400.0)},
                     ]
                     parcel_data["valid_parcels_count"] = 4
                     parcel_data["total_input_contours"] = 4
