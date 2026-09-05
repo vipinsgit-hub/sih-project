@@ -1,6 +1,6 @@
 """
 SIH Cadastral AI Prototype
-Milestone 5: GIS Visualization & Spatial Cadastral Comparison
+Milestone 6: Change Detection & Potential Encroachment Analysis
 """
 import json
 import os
@@ -39,15 +39,21 @@ from src.geospatial.cadastral import (
 from src.geospatial.comparison import (
     compare_cadastral_vs_candidate_parcels,
 )
+from src.change_detection.compare import (
+    detect_cadastral_changes,
+    calculate_change_metrics,
+    classify_discrepancy_and_risk,
+)
 from src.visualization.map import (
     render_gis_comparison_map,
+    render_parcel_detail_comparison,
 )
 
 # ---------------------------------------------------------
 # Page Configuration
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="CadastralAI - GIS Visualization & Comparison",
+    page_title="CadastralAI - Change Detection & Encroachment Analysis",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -97,38 +103,29 @@ st.markdown("""
         font-size: 0.88rem;
         color: #92400E;
     }
-    .status-match {
-        background-color: #DCFCE7;
-        color: #166534;
+    .risk-high {
+        background-color: #FEE2E2;
+        color: #991B1B;
         padding: 0.2rem 0.6rem;
         border-radius: 4px;
-        font-weight: 600;
-        font-size: 0.82rem;
+        font-weight: 700;
+        border: 1px solid #FCA5A5;
     }
-    .status-minor {
+    .risk-medium {
         background-color: #FEF9C3;
         color: #854D0E;
         padding: 0.2rem 0.6rem;
         border-radius: 4px;
         font-weight: 600;
-        font-size: 0.82rem;
+        border: 1px solid #FDE047;
     }
-    .status-mismatch {
-        background-color: #FEE2E2;
-        color: #991B1B;
+    .risk-low {
+        background-color: #DCFCE7;
+        color: #166534;
         padding: 0.2rem 0.6rem;
         border-radius: 4px;
         font-weight: 600;
-        font-size: 0.82rem;
-    }
-    .status-encroach {
-        background-color: #FEE2E2;
-        color: #B91C1C;
-        padding: 0.2rem 0.6rem;
-        border-radius: 4px;
-        font-weight: 700;
-        border: 1px solid #FCA5A5;
-        font-size: 0.82rem;
+        border: 1px solid #86EFAC;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -151,17 +148,17 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### 🛠️ Active Milestone")
-    st.markdown("**Milestone 5**: GIS Visualization & Cadastral Comparison")
+    st.markdown("**Milestone 6**: Change Detection & Potential Encroachment Analysis")
     
     st.markdown("---")
-    st.markdown("### ⚙️ Spatial Comparison Rules")
+    st.markdown("### ⚙️ Discrepancy & Risk Rules")
     match_threshold = st.slider(
         "Match IoU Threshold (%)",
         min_value=70,
         max_value=95,
         value=85,
         step=5,
-        help="Spatial overlap required to classify as MATCH"
+        help="Spatial overlap required to classify as MATCH (Risk: LOW)"
     ) / 100.0
 
     minor_threshold = st.slider(
@@ -170,23 +167,23 @@ with st.sidebar:
         max_value=75,
         value=60,
         step=5,
-        help="Spatial overlap for MINOR MISMATCH category"
+        help="Spatial overlap for MINOR BOUNDARY MISMATCH (Risk: MEDIUM)"
     ) / 100.0
 
     encroach_threshold = st.slider(
         "Potential Encroachment Protrusion (%)",
         min_value=5,
         max_value=40,
-        value=15,
+        value=10,
         step=5,
-        help="Proportion of candidate polygon extending outside cadastral boundary to trigger potential encroachment alert"
+        help="Proportion of candidate polygon extending outside cadastral boundary to trigger potential encroachment (Risk: HIGH)"
     ) / 100.0
 
     st.markdown("---")
     st.markdown("### 🗺️ GIS Layer Visibility")
     show_cad_layer = st.checkbox("Layer 1: Cadastral Reference (Blue)", value=True)
     show_cand_layer = st.checkbox("Layer 2: AI Candidate Parcels (Cyan)", value=True)
-    show_discrepancy_layer = st.checkbox("Layer 3: Potential Encroachment / Discrepancy (Red)", value=True)
+    show_discrepancy_layer = st.checkbox("Layer 3: Potential Encroachment / Extension (Red)", value=True)
 
     st.markdown("---")
     st.caption("Smart India Hackathon Prototype | Team CadastralAI")
@@ -194,20 +191,20 @@ with st.sidebar:
 # ---------------------------------------------------------
 # Main Application Content
 # ---------------------------------------------------------
-st.markdown('<div class="main-header">AI Cadastral Mapping & GIS Comparison</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Automated Urban Parcel Extraction, Cadastral Alignment & Potential Encroachment Detection</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">Cadastral AI: Change Detection & Encroachment Analysis</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">AI-Assisted Spatial Discrepancy Detection, Geometric Risk Classification & Surveyor Verification Queue</div>', unsafe_allow_html=True)
 
 # Technical & Legal Notice
 st.markdown("""
 <div class="disclaimer-box">
-    <strong>⚠️ Technical Distinction & Legal Notice:</strong>
-    This prototype detects <em>potential spatial discrepancies</em> between existing cadastral survey geometry and AI-extracted physical structures.
-    Flagged anomalies represent <strong>Potential Encroachments / Boundary Discrepancies</strong> intended to guide on-site surveyor inspection and do <strong>not</strong> constitute legally confirmed title infringements.
+    <strong>⚠️ Disclaimer & Legal Decision-Support Notice:</strong>
+    The system identifies potential spatial discrepancies between existing cadastral reference geometry and AI-derived candidate geometry.
+    It <strong>does not establish legal property boundaries or confirm encroachment</strong>. Final determination requires qualified surveyor and/or authorized municipal authority verification.
 </div>
 """, unsafe_allow_html=True)
 
 # Main Workspace Tabs
-tab_pipeline, tab_workflow = st.tabs(["🚀 Cadastral AI Pipeline", "ℹ️ Methodology & Architecture"])
+tab_pipeline, tab_workflow = st.tabs(["🚀 End-to-End Pipeline & Analysis", "ℹ️ Methodology & Architecture"])
 
 with tab_pipeline:
     # ---------------------------------------------------------
@@ -276,7 +273,7 @@ with tab_pipeline:
                         seg_result = segment_image(loaded_image, model_bundle)
                         st.session_state["seg_result"] = seg_result
                         st.session_state.pop("parcel_result", None)
-                        st.session_state.pop("comp_result", None)
+                        st.session_state.pop("change_result", None)
                 else:
                     seg_result = st.session_state["seg_result"]
 
@@ -312,26 +309,25 @@ with tab_pipeline:
                                 boundary_data["contours"],
                                 tolerance=2.0,
                                 min_area=200.0,
-                                id_prefix="P-"
+                                id_prefix="C-"
                             )
                             st.session_state["boundary_data"] = boundary_data
                             st.session_state["parcel_data"] = parcel_data
                             st.session_state["parcel_result"] = True
-                            st.session_state.pop("comp_result", None)
+                            st.session_state.pop("change_result", None)
                     else:
                         boundary_data = st.session_state["boundary_data"]
                         parcel_data = st.session_state["parcel_data"]
 
                     parcels = parcel_data["parcels"]
-
                     st.info(f"✔ Extracted {len(parcels)} candidate parcel polygons ({boundary_data['rejected_count']} noise regions filtered).")
 
                     st.markdown("---")
 
                     # ---------------------------------------------------------
-                    # Stage 4: Cadastral Comparison & GIS Visualization
+                    # Stage 4: Cadastral Ingestion & Change Detection
                     # ---------------------------------------------------------
-                    st.subheader("4. Historical Cadastral GIS Comparison & Encroachment Detection")
+                    st.subheader("4. Change Detection & Potential Encroachment Analysis")
 
                     demo_cadastral_path = os.path.join("data", "cadastral", "demo_cadastral.geojson")
                     
@@ -345,13 +341,19 @@ with tab_pipeline:
                     with cad_col2:
                         st.write("")
                         st.write("")
-                        run_compare_btn = st.button("⚡ Run Spatial Cadastral Comparison", type="primary", use_container_width=True)
+                        run_change_btn = st.button("⚡ Run Change & Encroachment Analysis", type="primary", use_container_width=True)
 
-                    if run_compare_btn or "comp_result" in st.session_state:
-                        if run_compare_btn:
-                            with st.spinner("🗺️ Performing spatial topology comparison (IoU, Area Diff, Encroachment Analysis)..."):
+                    # Initialize surveyor verification statuses in session state if absent
+                    if "surveyor_statuses" not in st.session_state:
+                        st.session_state["surveyor_statuses"] = {}
+                    if "surveyor_notes" not in st.session_state:
+                        st.session_state["surveyor_notes"] = {}
+
+                    if run_change_btn or "change_result" in st.session_state:
+                        if run_change_btn:
+                            with st.spinner("🔍 Analyzing geometric discrepancies, area deltas, and risk tiers..."):
                                 cad_parcels = load_cadastral_geojson(demo_cadastral_path)
-                                comp_data = compare_cadastral_vs_candidate_parcels(
+                                change_data = detect_cadastral_changes(
                                     cad_parcels,
                                     parcels,
                                     match_iou_threshold=match_threshold,
@@ -359,40 +361,57 @@ with tab_pipeline:
                                     encroachment_threshold=encroach_threshold,
                                 )
                                 st.session_state["cad_parcels"] = cad_parcels
-                                st.session_state["comp_data"] = comp_data
-                                st.session_state["comp_result"] = True
+                                st.session_state["change_data"] = change_data
+                                st.session_state["change_result"] = True
                         else:
                             cad_parcels = st.session_state["cad_parcels"]
-                            comp_data = st.session_state["comp_data"]
+                            change_data = st.session_state["change_data"]
 
-                        comp_results = comp_data["comparison_results"]
+                        records = change_data["change_records"]
+                        queue = change_data["surveyor_queue"]
 
-                        # Comparison Summary Metrics
-                        c_m1, c_m2, c_m3, c_m4, c_m5 = st.columns(5)
+                        # ---------------------------------------------------------
+                        # Summary Cards
+                        # ---------------------------------------------------------
+                        c_m1, c_m2, c_m3, c_m4, c_m5, c_m6 = st.columns(6)
                         with c_m1:
-                            st.metric("Cadastral Records", comp_data["total_cadastral"])
+                            st.metric("Cadastral Parcels", change_data["total_cadastral"])
                         with c_m2:
-                            st.metric("AI Candidate Parcels", comp_data["total_candidates"])
+                            st.metric("AI Candidates", change_data["total_candidates"])
                         with c_m3:
-                            st.metric("Matches (IoU ≥ 85%)", comp_data["matches_count"])
+                            st.metric("Matches (IoU ≥ 85%)", change_data["matches_count"])
                         with c_m4:
-                            st.metric("Boundary Mismatches", comp_data["boundary_mismatches_count"] + comp_data["minor_mismatches_count"])
+                            st.metric("Discrepancies", change_data["minor_discrepancies_count"] + change_data["significant_discrepancies_count"])
                         with c_m5:
-                            st.metric("🚨 Potential Encroachments", comp_data["potential_encroachments_count"])
+                            st.metric("🚨 Potential Encroachments", change_data["potential_encroachments_count"])
+                        with c_m6:
+                            st.metric("⚠️ High Risk Tier", change_data["high_risk_count"])
 
-                        # Multi-Layer GIS Visualization Map
-                        st.markdown("### 🗺️ Multi-Layer Cadastral GIS Map")
+                        st.markdown("---")
 
-                        # Optional Parcel Selector for focused inspection
-                        cad_id_options = ["All Parcels"] + [c["cadastral_id"] for c in comp_results]
-                        selected_plot = st.selectbox("🎯 Highlight Specific Parcel Plot:", options=cad_id_options, index=0)
+                        # ---------------------------------------------------------
+                        # Multi-Layer GIS Map
+                        # ---------------------------------------------------------
+                        st.markdown("### 🗺️ GIS Layered Discrepancy Map")
+
+                        # Format comparison results for GIS map rendering
+                        comp_map_data = []
+                        for r in records:
+                            comp_map_data.append({
+                                "cadastral_id": r["parcel_id"],
+                                "candidate_id": r["candidate_id"],
+                                "encroachment_geometry": r["potential_extension_geom"] if r["potential_encroachment"] else None,
+                            })
+
+                        cad_id_options = ["All Parcels"] + [r["parcel_id"] for r in records]
+                        selected_plot = st.selectbox("🎯 Highlight Specific Parcel:", options=cad_id_options, index=0)
                         focused_id = None if selected_plot == "All Parcels" else selected_plot
 
                         gis_map_img = render_gis_comparison_map(
                             loaded_image,
                             cadastral_parcels=cad_parcels,
                             candidate_parcels=parcels,
-                            comparison_results=comp_results,
+                            comparison_results=comp_map_data,
                             show_cadastral=show_cad_layer,
                             show_candidates=show_cand_layer,
                             show_discrepancies=show_discrepancy_layer,
@@ -401,57 +420,134 @@ with tab_pipeline:
 
                         st.image(
                             gis_map_img,
-                            caption="GIS Layered Map: Blue = Historical Cadastral Record | Cyan = AI Candidate Geometry | Red = Potential Encroachment Region",
+                            caption="GIS Layered Map: Blue = Cadastral Reference | Cyan = AI Candidate | Red = Potential Encroachment Protrusion",
                             use_container_width=True
                         )
 
-                        # Detailed Spatial Comparison Table
-                        st.markdown("### 📋 Spatial Comparison & Discrepancy Registry")
-                        
-                        table_data = []
-                        for r in comp_results:
+                        st.markdown("---")
+
+                        # ---------------------------------------------------------
+                        # Risk & Discrepancy Table
+                        # ---------------------------------------------------------
+                        st.markdown("### 📊 Cadastral Risk & Discrepancy Registry")
+
+                        table_rows = []
+                        for r in queue:
+                            pid = r["parcel_id"]
+                            curr_status = st.session_state["surveyor_statuses"].get(pid, r["verification_status"])
+                            
+                            # Risk badge
+                            risk = r["risk_level"]
+                            if risk == "HIGH":
+                                risk_badge = "🔴 HIGH"
+                            elif risk == "MEDIUM":
+                                risk_badge = "🟡 MEDIUM"
+                            else:
+                                risk_badge = "🟢 LOW"
+
+                            # Status badge
                             status_label = r["discrepancy_type"]
                             if r["potential_encroachment"]:
-                                formatted_status = f"🚨 {status_label}"
-                            elif status_label == "MATCH":
-                                formatted_status = f"✔ {status_label}"
-                            elif status_label == "MINOR MISMATCH":
-                                formatted_status = f"⚠️ {status_label}"
+                                status_badge = f"🚨 {status_label}"
+                            elif "MATCH" in status_label and "MISMATCH" not in status_label:
+                                status_badge = f"✔ {status_label}"
                             else:
-                                formatted_status = f"❌ {status_label}"
+                                status_badge = f"⚠️ {status_label}"
 
-                            table_data.append({
-                                "Cadastral ID": r["cadastral_id"],
-                                "Matched AI ID": r["candidate_id"],
-                                "Spatial Overlap (IoU)": f"{r['overlap_percentage']:.1f}%",
-                                "Cadastral Area (px²)": f"{r['cadastral_area_px']:,.1f}",
-                                "AI Area (px²)": f"{r['candidate_area_px']:,.1f}" if r['candidate_area_px'] > 0 else "0.0",
-                                "Excess Area (px²)": f"{r['excess_area_px']:,.1f}",
-                                "Discrepancy Status": formatted_status,
-                                "Land Use": r["land_use"],
+                            table_rows.append({
+                                "Parcel ID": pid,
+                                "AI Candidate": r["candidate_id"],
+                                "IoU Overlap": f"{r['overlap_percentage']:.1f}%",
+                                "Cadastral Area": f"{r['cadastral_area_px']:,.0f} px²",
+                                "AI Area": f"{r['candidate_area_px']:,.0f} px²" if r['candidate_area_px'] > 0 else "0",
+                                "Area Delta (%)": f"{r['area_difference_pct']:.1f}%",
+                                "Potential Extension": f"{r['potential_extension_area_px']:,.0f} px²",
+                                "Discrepancy Status": status_badge,
+                                "Prototype Risk": risk_badge,
+                                "Surveyor Status": curr_status,
                             })
 
-                        df_comp = pd.DataFrame(table_data)
-                        st.dataframe(df_comp, use_container_width=True, hide_index=True)
+                        df_risk = pd.DataFrame(table_rows)
+                        st.dataframe(df_risk, use_container_width=True, hide_index=True)
 
-                        # Individual Plot Deep-Dive Inspector
-                        if focused_id is not None:
-                            target_record = next((r for r in comp_results if r["cadastral_id"] == focused_id), None)
-                            if target_record:
-                                st.markdown(f"#### 🔍 Deep Inspection: Plot `{focused_id}`")
-                                insp_col1, insp_col2 = st.columns(2)
-                                with insp_col1:
-                                    st.write(f"**Owner Reference:** {target_record['owner_reference']}")
-                                    st.write(f"**Land Use Category:** {target_record['land_use']}")
+                        st.markdown("---")
+
+                        # ---------------------------------------------------------
+                        # Selected Parcel Detail View & Surveyor Review Actions
+                        # ---------------------------------------------------------
+                        st.markdown("### 🔍 Parcel Detail Inspector & Surveyor Action Queue")
+                        
+                        target_pid = st.selectbox(
+                            "Select Parcel for Detail Review & Surveyor Sign-Off:",
+                            options=[r["parcel_id"] for r in queue],
+                            index=0
+                        )
+
+                        target_record = next((r for r in records if r["parcel_id"] == target_pid), None)
+                        if target_record:
+                            curr_surveyor_status = st.session_state["surveyor_statuses"].get(target_pid, target_record["verification_status"])
+
+                            col_detail_map, col_detail_info = st.columns([1, 1])
+
+                            with col_detail_map:
+                                # Render single-parcel focused cropped comparison
+                                parcel_detail_img = render_parcel_detail_comparison(
+                                    loaded_image,
+                                    cadastral_geom=target_record["cadastral_geometry"],
+                                    candidate_geom=target_record["candidate_geometry"],
+                                    extension_geom=target_record["potential_extension_geom"],
+                                    missing_geom=target_record["missing_cadastral_geom"],
+                                    crop_to_parcel=True,
+                                    padding=50
+                                )
+                                st.image(
+                                    parcel_detail_img,
+                                    caption=f"Detail Zoom for {target_pid}: Blue = Legal Boundary | Cyan = Current Structure | Red = Potential Protrusion | Orange = Missing Coverage",
+                                    use_container_width=True
+                                )
+
+                            with col_detail_info:
+                                st.markdown(f"#### Parcel `{target_pid}` vs Candidate `{target_record['candidate_id']}`")
+                                
+                                # Metrics Grid
+                                d1, d2 = st.columns(2)
+                                with d1:
                                     st.write(f"**Spatial Overlap (IoU):** {target_record['overlap_percentage']:.1f}%")
-                                    st.write(f"**Area Difference:** {target_record['area_difference_px']:+,.1f} px²")
-                                with insp_col2:
-                                    st.write(f"**Discrepancy Status:** `{target_record['discrepancy_type']}`")
-                                    st.write(f"**Potential Encroachment Alert:** `{'YES - Boundary Protrusion Detected' if target_record['potential_encroachment'] else 'No'}`")
-                                    st.write(f"**Protrusion Outside Legal Boundary:** `{target_record['excess_area_px']:,.1f} px² ({target_record['excess_ratio']*100:.1f}%)`")
-                                    st.caption("📌 Action Recommended: Flag for certified surveyor field inspection & deed verification.")
+                                    st.write(f"**Existing Cadastral Area:** {target_record['cadastral_area_px']:,.1f} px²")
+                                    st.write(f"**Current Candidate Area:** {target_record['candidate_area_px']:,.1f} px²")
+                                with d2:
+                                    st.write(f"**Area Difference:** {target_record['area_difference_px']:+,.1f} px² ({target_record['area_difference_pct']:.1f}%)")
+                                    st.write(f"**Potential Extension Area:** {target_record['potential_extension_area_px']:,.1f} px² ({target_record['extension_ratio']*100:.1f}%)")
+                                    st.write(f"**Prototype Risk Tier:** `{target_record['risk_level']}`")
 
-                        st.success("✔ Milestone 5 Complete: Multi-layer GIS visualization, spatial IoU comparison, and potential encroachment alerts operational.")
+                                st.write(f"**Discrepancy Category:** `{target_record['discrepancy_type']}`")
+                                st.write(f"**Current Surveyor Status:** `{curr_surveyor_status}`")
+
+                                st.markdown("##### ✍️ Surveyor Verification Action")
+                                
+                                act_c1, act_c2, act_c3 = st.columns(3)
+                                with act_c1:
+                                    if st.button("✔ Mark Reviewed", key=f"rev_{target_pid}", use_container_width=True):
+                                        st.session_state["surveyor_statuses"][target_pid] = "REVIEWED & VERIFIED"
+                                        st.rerun()
+                                with act_c2:
+                                    if st.button("🚨 Flag for On-Site Survey", key=f"flag_{target_pid}", use_container_width=True):
+                                        st.session_state["surveyor_statuses"][target_pid] = "FLAGGED FOR ON-SITE SURVEY"
+                                        st.rerun()
+                                with act_c3:
+                                    if st.button("🔄 Reset Status", key=f"rst_{target_pid}", use_container_width=True):
+                                        st.session_state["surveyor_statuses"][target_pid] = "PENDING SURVEYOR REVIEW"
+                                        st.rerun()
+
+                                # Optional Surveyor Notes
+                                current_notes = st.session_state["surveyor_notes"].get(target_pid, "")
+                                notes_input = st.text_input("Surveyor Field Notes:", value=current_notes, key=f"note_in_{target_pid}")
+                                if notes_input != current_notes:
+                                    st.session_state["surveyor_notes"][target_pid] = notes_input
+
+                                st.caption("📌 Human-in-the-loop: Surveyor review records persist in active session state for quality audit trail.")
+
+                        st.success("✔ Milestone 6 Complete: Change detection, potential encroachment analysis, and surveyor verification queue operational.")
 
         except ImageProcessingError as e:
             st.error(f"⚠️ Image Error: {str(e)}")
@@ -464,14 +560,23 @@ with tab_pipeline:
 
 with tab_workflow:
     st.markdown("""
-    ### 🔬 Spatial Cadastral Comparison Methodology
+    ### 🔬 Change Detection & Encroachment Methodology
     
-    1. **Cadastral Reference Parsing**: Historical survey GeoJSON records are ingested and validated for topological consistency.
-    2. **Spatial Topology Intersect**: Each cadastral plot is mapped to its best candidate AI structure using spatial intersection.
-    3. **Intersection over Union (IoU)**: Evaluates geometric alignment:
-       $$\\text{IoU} = \\frac{\\text{Area}(\\text{Cadastral} \\cap \\text{AI Candidate})}{\\text{Area}(\\text{Cadastral} \\cup \\text{AI Candidate})}$$
-    4. **Potential Encroachment Computation**: Isolates excess geometry extending beyond the legal property line:
-       $$\\text{Excess} = \\text{AI Candidate} \\setminus \\text{Cadastral Reference}$$
-       If the protrusion exceeds the configured threshold (default: 15%), the parcel is flagged as **POTENTIAL ENCROACHMENT**.
-    5. **Multi-Layer GIS Visualization**: Overlays historical deed boundaries (blue), AI detected boundaries (cyan), and potential encroachment zones (red) directly over the original drone survey photo.
+    1. **Spatial Geometry Matching**:
+       - Maps each existing cadastral parcel to candidate AI polygons via spatial intersection.
+    2. **Geometric Change Metrics**:
+       - **Intersection over Union (IoU)**: Evaluates overall geometric similarity.
+       - **Potential Extension Area**: Computes candidate geometry extending outside reference boundary:
+         $$\\text{Extension} = \\text{Candidate} \\setminus \\text{Cadastral}$$
+       - **Missing Cadastral Area**: Computes legal parcel area not covered by detected structure.
+       - **Area Delta (%)**: Quantifies relative structural footprint variance.
+    3. **Discrepancy & Risk Classification**:
+       - **MATCH (Low Risk)**: IoU $\\ge$ 85% with minimal difference.
+       - **MINOR BOUNDARY MISMATCH (Medium Risk)**: 60% $\\le$ IoU < 85%.
+       - **SIGNIFICANT BOUNDARY MISMATCH (High Risk)**: IoU < 60%.
+       - **POTENTIAL ENCROACHMENT (High Risk)**: Extension area $\\ge$ 10% of cadastral area.
+       - **UNMATCHED (Medium Risk)**: Reference parcel with no candidate structure detected.
+    4. **Surveyor Verification Queue (Human-in-the-Loop)**:
+       - Flags high-risk plots into an actionable verification queue.
+       - Allows certified surveyors to inspect deep-dive zoomed overlays, add notes, and sign off as `REVIEWED` or `FLAGGED FOR ON-SITE SURVEY`.
     """)

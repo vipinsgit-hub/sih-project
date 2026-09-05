@@ -26,8 +26,12 @@ from src.geospatial import (
     classify_discrepancy,
     compare_cadastral_vs_candidate_parcels,
 )
-from src.visualization import render_gis_comparison_map
-from src.change_detection import detect_cadastral_changes
+from src.visualization import render_gis_comparison_map, render_parcel_detail_comparison
+from src.change_detection import (
+    detect_cadastral_changes,
+    calculate_change_metrics,
+    classify_discrepancy_and_risk,
+)
 from src.utils import format_area_sqm, export_geojson, load_image, get_image_metadata, preprocess_for_model
 
 
@@ -62,11 +66,16 @@ class TestCadastralPrototypeSmoke(unittest.TestCase):
         self.assertTrue(callable(classify_discrepancy))
         self.assertTrue(callable(compare_cadastral_vs_candidate_parcels))
         self.assertTrue(callable(render_gis_comparison_map))
+        self.assertTrue(callable(render_parcel_detail_comparison))
 
-    def test_change_detection_skeleton(self):
+    def test_change_detection_exports(self):
+        self.assertTrue(callable(detect_cadastral_changes))
+        self.assertTrue(callable(calculate_change_metrics))
+        self.assertTrue(callable(classify_discrepancy_and_risk))
         res = detect_cadastral_changes([], [])
-        self.assertIn("matched", res)
-        self.assertIn("encroachments", res)
+        self.assertIn("change_records", res)
+        self.assertIn("surveyor_queue", res)
+
 
     def test_utils(self):
         formatted = format_area_sqm(10500.5)

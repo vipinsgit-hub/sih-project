@@ -11,7 +11,7 @@ Manual cadastral surveying of urban land parcels is labor-intensive, time-consum
 > **Key Technical Distinction**: The system distinguishes between **Building Footprints** and **Legal Land Parcels**, employing contour regularization, boundary wall/fence detection, and historical cadastral alignment rather than treating building boundaries as property lines.
 
 > **Prototype Disclaimer & Legal Notice**: 
-> The prototype identifies potential spatial discrepancies using AI-derived candidate geometry and existing cadastral reference geometry. It **does not establish legal property boundaries or confirm legal encroachment**. All outputs represent **candidate geometry** and **potential discrepancies** intended to assist certified land surveyors and GIS professionals. Area and perimeter measurements are in **pixel units** (px², px) unless real-world georeferencing/GSD calibration is provided.
+> The system identifies potential spatial discrepancies between existing cadastral reference geometry and AI-derived candidate geometry. It **does not establish legal property boundaries or confirm encroachment**. Final determination requires qualified surveyor and/or authorized authority verification. Area and perimeter measurements are in **pixel units** (px², px) unless real-world georeferencing/GSD calibration is provided.
 
 ---
 
@@ -32,43 +32,61 @@ GIS Geospatial Visualization & Demo Cadastral Ingestion                [COMPLETE
         ↓
 Spatial Topology Comparison & Geometric Similarity (IoU)               [COMPLETED]
         ↓
-Discrepancy Categorization & Potential Encroachment Alerts             [COMPLETED]
+Change & Potential Encroachment Detection (Extension Geometry)         [COMPLETED]
         ↓
-Surveyor Verification & Quality Control
+Prototype Risk Classification (LOW / MEDIUM / HIGH)                    [COMPLETED]
+        ↓
+Surveyor Verification Queue & Human-in-the-Loop Audit                  [COMPLETED]
         ↓
 Standard GeoJSON / Shapefile Export
 ```
 
 ---
 
+## 🔍 Change Detection, Encroachment Analysis & Risk Classification
+
+The change detection engine (`src/change_detection/compare.py`) analyzes the geometric relationship between reference cadastral polygons and AI-extracted candidate parcels:
+
+1. **Spatial Change Metrics**:
+   - **Intersection over Union (IoU)**: $\text{IoU} = \frac{\text{Area}(\text{Intersection})}{\text{Area}(\text{Union})}$, quantifying overall boundary overlap.
+   - **Potential Extension Area**: Computes candidate structural footprint protruding outside the reference deed boundary:
+     $$\text{Extension Geometry} = \text{Candidate Polygon} \setminus \text{Cadastral Reference}$$
+   - **Missing Cadastral Area**: Identifies legal parcel portions without detected structures ($\text{Cadastral} \setminus \text{Candidate}$).
+   - **Area Difference & Variance Percentage**: $\Delta \text{Area} = \text{Area}_{\text{cand}} - \text{Area}_{\text{cad}}$, and $\% \Delta = \frac{|\Delta \text{Area}|}{\text{Area}_{\text{cad}}} \times 100$.
+
+2. **Discrepancy & Risk Classification Rules**:
+   - `MATCH` (IoU $\ge$ 0.85): **LOW RISK** — Close geometric alignment.
+   - `MINOR BOUNDARY MISMATCH` (0.60 $\le$ IoU < 0.85): **MEDIUM RISK** — Slight corner or edge variance.
+   - `SIGNIFICANT BOUNDARY MISMATCH` (IoU < 0.60): **HIGH RISK** — Major footprint divergence.
+   - `POTENTIAL ENCROACHMENT` (Extension Area $\ge$ 10% of Cadastral Area): **HIGH RISK** — Physical structure extends significantly beyond deed boundary.
+   - `UNMATCHED` (No detected candidate): **MEDIUM RISK** — Vacant lot or undetected parcel.
+
+3. **Human-in-the-Loop Surveyor Verification Queue**:
+   - Prioritizes parcels by risk tier (HIGH $\rightarrow$ MEDIUM $\rightarrow$ LOW).
+   - Allows certified land surveyors to inspect focused, zoomed-in overlays showing legal boundaries, current structures, and highlighted protrusion regions.
+   - Provides interactive sign-off actions (`REVIEWED & VERIFIED`, `FLAGGED FOR ON-SITE SURVEY`, `RESET`) and field note tracking.
+
+---
+
 ## 🗺️ GIS Visualization & Cadastral Comparison
 
-The system integrates a lightweight, layered 2D GIS visualizer and spatial topology comparison engine:
+The system integrates a lightweight, layered 2D GIS visualizer:
 
 1. **Synthetic Demo Cadastral Dataset (`data/cadastral/demo_cadastral.geojson`)**:
    - Deterministic GeoJSON benchmark dataset created strictly for prototype evaluation.
    - Includes benchmark test cases: exact matches, minor boundary differences, substantial boundary mismatches, and potential lateral encroachments.
-2. **Spatial Topology Analysis (`src/geospatial/comparison.py`)**:
-   - **Intersection over Union (IoU)**: Evaluates geometric overlap similarity ($IoU = \frac{\text{Area}(\text{Intersection})}{\text{Area}(\text{Union})}$).
-   - **Area Difference & Excess Protrusion**: Calculates candidate geometry protrusion extending beyond reference cadastral boundaries.
-   - **Discrepancy Categorization**:
-     - `MATCH` (IoU $\ge$ 0.85)
-     - `MINOR MISMATCH` (0.60 $\le$ IoU < 0.85)
-     - `BOUNDARY MISMATCH` (IoU < 0.60)
-     - `POTENTIAL ENCROACHMENT` (Candidate extends beyond cadastral parcel by $\ge$ 10% excess area)
-     - `UNMATCHED` (No corresponding cadastral or AI candidate geometry)
-3. **Multi-Layer GIS Map Visualizer (`src/visualization/map.py`)**:
+2. **Multi-Layer GIS Map Visualizer (`src/visualization/map.py`)**:
    - **Layer 1**: Existing Cadastral Parcels (Deep Blue outlines with soft fill)
    - **Layer 2**: AI Candidate Parcels (Bright Cyan dashed outlines)
-   - **Layer 3**: Potential Encroachment / Discrepancy Zones (Crimson red overlay)
-   - Interactive parcel selection, summary metrics, and side-by-side comparison tables.
+   - **Layer 3**: Potential Encroachment / Extension Protrusions (Crimson red overlay)
+   - **Parcel Detail Zoom**: Single-parcel deep-dive with bounding-box cropping and discrepancy annotations.
 
 ---
 
 ## 🌐 Coordinate Reference System & Georeferencing Limitation
 
-- **Current Prototype Coordinates**: Evaluated in standardized local/demo pixel coordinate space.
-- **Georeferencing Roadmap**: Designed with a clean modular abstraction (`src/geospatial/`) that directly enables replacing local coordinates with real-world georeferenced GeoTIFF imagery (EPSG:4326 / UTM projected coordinates) and official state GIS cadastral layers in future deployment phases.
+- **Current Prototype Coordinates**: Standardized local/demo pixel coordinate space.
+- **Georeferencing Roadmap**: Designed with a clean modular abstraction (`src/geospatial/`, `src/change_detection/`) that enables replacing local coordinates with real-world georeferenced GeoTIFF imagery (EPSG:4326 / UTM projected coordinates) and official municipal GIS layers.
 
 ---
 
@@ -76,7 +94,7 @@ The system integrates a lightweight, layered 2D GIS visualizer and spatial topol
 
 - **Frontend / UI**: Streamlit
 - **Computer Vision & AI**: PyTorch, Hugging Face Transformers, OpenCV (`opencv-python-headless`), NumPy, Pillow
-- **Geospatial & Vector Processing**: Shapely, Matplotlib / Folium, GeoJSON
+- **Geospatial & Vector Processing**: Shapely, GeoJSON
 - **Data & Analytics**: Pandas
 
 ---
@@ -106,9 +124,12 @@ sih-project/
 │   │   ├── __init__.py
 │   │   ├── cadastral.py               # Safe GeoJSON parser, geometry validator & stats
 │   │   └── comparison.py              # IoU, spatial overlap, discrepancy & encroachment classifier
+│   ├── change_detection/              # Change detection & risk classification
+│   │   ├── __init__.py
+│   │   └── compare.py                 # Extension area geometry, risk classification, surveyor queue
 │   ├── visualization/                 # GIS mapping & discrepancy rendering
 │   │   ├── __init__.py
-│   │   └── map.py                     # Multi-layer GIS map rendering & legend generator
+│   │   └── map.py                     # Multi-layer GIS map & parcel detail deep-dive rendering
 │   └── utils/                         # Geospatial & image processing utilities
 │       ├── __init__.py
 │       ├── helpers.py                 # GeoJSON export and formatters
@@ -122,13 +143,14 @@ sih-project/
 │
 ├── models/                            # Model weights & configurations
 ├── outputs/                           # Exported GeoJSON, maps, and reports
-└── tests/                             # Automated smoke & unit tests (31 tests)
+└── tests/                             # Automated smoke & unit tests (37 tests)
     ├── __init__.py
     ├── test_smoke.py                  # End-to-end pipeline integration smoke test
     ├── test_image_processing.py       # Image input, metadata & tensor tests
     ├── test_segmentation.py           # SegFormer AI model inference tests
     ├── test_boundary_and_polygons.py  # Contour morphology & Shapely vector tests
-    └── test_cadastral_and_comparison.py # GeoJSON validation, IoU & encroachment tests
+    ├── test_cadastral_and_comparison.py # GeoJSON validation & IoU tests
+    └── test_change_detection.py       # Change metrics, risk tiers & surveyor queue tests
 ```
 
 ---
@@ -168,8 +190,8 @@ streamlit run app.py
 - [x] **Milestone 2**: Aerial image input validation, metadata extraction, RGB normalization, and AI tensor preprocessing pipeline.
 - [x] **Milestone 3**: AI-based feature segmentation using SegFormer Transformer, class statistics, and alpha-blended diagnostic overlays.
 - [x] **Milestone 4**: Boundary extraction, morphological noise filtering, Douglas-Peucker polygon regularization, candidate parcel attributes, and GeoJSON export.
-- [x] **Milestone 5**: Layered GIS visualization, synthetic cadastral ingestion, spatial overlap (IoU) comparison, and potential encroachment classification.
-- [ ] **Milestone 6**: Temporal change detection & historical survey alignment.
+- [x] **Milestone 5**: Layered GIS visualization, synthetic cadastral ingestion, spatial overlap (IoU) comparison.
+- [x] **Milestone 6**: Temporal change detection, potential encroachment analysis, risk tiers, and surveyor verification queue.
 - [ ] **Milestone 7**: Interactive surveyor verification tool, manual boundary vertex adjustment & official export.
 
 ---
@@ -177,3 +199,4 @@ streamlit run app.py
 ## 📄 License & Disclaimer
 
 This prototype is built strictly as a technical proof-of-concept for the Smart India Hackathon. It is designed to serve as an **AI-assisted tool for certified surveyors** rather than independently generating legally binding cadastral land titles.
+

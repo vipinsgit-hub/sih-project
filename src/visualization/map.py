@@ -134,3 +134,99 @@ def render_gis_comparison_map(
     combined = Image.alpha_composite(base_img, overlay_fill)
     final_img = Image.alpha_composite(combined, overlay_lines)
     return final_img.convert("RGB")
+
+
+def render_parcel_detail_comparison(
+    image: Union[Image.Image, np.ndarray],
+    cadastral_geom: Optional[Polygon],
+    candidate_geom: Optional[Polygon],
+    extension_geom: Optional[Polygon] = None,
+    missing_geom: Optional[Polygon] = None,
+    crop_to_parcel: bool = True,
+    padding: int = 40
+) -> Image.Image:
+    """
+    Render a focused deep-dive discrepancy comparison map for a single selected parcel.
+    
+    Args:
+        image: Base aerial image.
+        cadastral_geom: Shapely Polygon of reference cadastral parcel.
+        candidate_geom: Shapely Polygon of AI candidate parcel.
+        extension_geom: Shapely Polygon representing candidate area outside cadastral parcel.
+        missing_geom: Shapely Polygon representing cadastral area not covered by candidate.
+        crop_to_parcel: If True, crops the view closely around the parcel bounding box with padding.
+        padding: Pixel padding around the bounding box if cropped.
+        
+    Returns:
+        Rendered PIL.Image.Image.
+    """
+    if isinstance(image, np.ndarray):
+        base_img = Image.fromarray(image).convert("RGBA")
+    else:
+        base_img = image.convert("RGBA")
+
+    w, h = base_img.size
+
+    overlay_fill = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw_fill = ImageDraw.Draw(overlay_fill)
+
+    overlay_lines = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw_lines = ImageDraw.Draw(overlay_lines)
+
+    # 1. Cadastral Boundary (Blue)
+    if cadastral_geom is not None and not cadastral_geom.is_empty:
+        coords = [(int(x), int(y)) for x, y in cadastral_geom.exterior.coords]
+        draw_fill.polygon(coords, fill=(30, 64, 175, 60))
+        draw_lines.line(coords, fill=(37, 99, 235, 255), width=3)
+
+    # 2. Candidate Boundary (Cyan)
+    if candidate_geom is not None and not candidate_geom.is_empty:
+        coords = [(int(x), int(y)) for x, y in candidate_geom.exterior.coords]
+        draw_fill.polygon(coords, fill=(6, 182, 212, 70))
+        draw_lines.line(coords, fill=(8, 145, 178, 255), width=3)
+
+    # 3. Missing Cadastral (Orange)
+    if missing_geom is not None and not missing_geom.is_empty:
+        geoms = missing_geom.geoms if isinstance(missing_geom, MultiPolygon) else [missing_geom]
+        for g in geoms:
+            if isinstance(g, Polygon) and len(g.exterior.coords) >= 3:
+                coords = [(int(x), int(y)) for x, y in g.exterior.coords]
+                draw_fill.polygon(coords, fill=(245, 158, 11, 140))
+                draw_lines.line(coords, fill=(217, 119, 6, 255), width=2)
+
+    # 4. Potential Extension Area (Crimson Red)
+    if extension_geom is not None and not extension_geom.is_empty:
+        geoms = extension_geom.geoms if isinstance(extension_geom, MultiPolygon) else [extension_geom]
+        for g in geoms:
+            if isinstance(g, Polygon) and len(g.exterior.coords) >= 3:
+                coords = [(int(x), int(y)) for x, y in g.exterior.coords]
+                draw_fill.polygon(coords, fill=(239, 68, 68, 180))
+                draw_lines.line(coords, fill=(220, 38, 38, 255), width=3)
+
+    combined = Image.alpha_composite(base_img, overlay_fill)
+    final_img = Image.alpha_composite(combined, overlay_lines).convert("RGB")
+
+    if crop_to_parcel:
+        # Determine union bounds for cropping
+        bounds = None
+        for g in [cadastral_geom, candidate_geom, extension_geom]:
+            if g is not None and not g.is_empty:
+                b = g.bounds
+                if bounds is None:
+                    bounds = list(b)
+                else:
+                    bounds[0] = min(bounds[0], b[0])
+                    bounds[1] = min(bounds[1], b[1])
+                    bounds[2] = max(bounds[2], b[2])
+                    bounds[3] = max(bounds[3], b[3])
+
+        if bounds is not None:
+            minx = max(0, int(bounds[0]) - padding)
+            miny = max(0, int(bounds[1]) - padding)
+            maxx = min(w, int(bounds[2]) + padding)
+            maxy = min(h, int(bounds[3]) + padding)
+            if maxx > minx and maxy > miny:
+                return final_img.crop((minx, miny, maxx, maxy))
+
+    return final_img
+
