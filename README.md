@@ -8,7 +8,9 @@ A rapid technical prototype developed for the **Smart India Hackathon (SIH)** pr
 
 Manual cadastral surveying of urban land parcels is labor-intensive, time-consuming, and prone to boundary disputes. This prototype demonstrates an automated, AI-assisted pipeline to extract urban parcel boundaries from high-resolution drone imagery, generate regularized parcel polygons, compare them against historical cadastral survey maps, and flag potential encroachments or unauthorized land-use changes for surveyor verification.
 
-> **Key Distinction**: The system distinguishes between **Building Footprints** and **Legal Land Parcels**, employing contour regularization, boundary wall/fence detection, and historical cadastral alignment rather than treating building boundaries as property lines.
+> **Key Technical Distinction**: The system distinguishes between **Building Footprints** and **Legal Land Parcels**, employing contour regularization, boundary wall/fence detection, and historical cadastral alignment rather than treating building boundaries as property lines.
+
+> **Prototype Disclaimer**: Pretrained AI segmentation models extract preliminary visual semantic features (buildings, roads, walls, vegetation, ground terrain). They **do not independently determine legal land ownership or official cadastral boundaries**, but rather provide candidate geometric features for downstream GIS processing and certified surveyor verification.
 
 ---
 
@@ -19,9 +21,9 @@ Aerial / Drone Imagery
         ↓
 Image Preprocessing (Contrast, Tiling, RGB Normalization, Tensor Prep)  [COMPLETED]
         ↓
-AI Feature & Boundary Segmentation (Deep Learning / CV)
+AI Feature & Semantic Segmentation (SegFormer Transformer ADE20K)       [COMPLETED]
         ↓
-Boundary Extraction & Regularization
+Boundary Extraction & Edge Regularization
         ↓
 Parcel Polygon Vectorization & Topology Validation
         ↓
@@ -38,11 +40,27 @@ Standard GeoJSON / Shapefile Export
 
 ---
 
+## 🧠 AI Semantic Segmentation Engine
+
+The prototype utilizes **`nvidia/segformer-b0-finetuned-ade-512-512`**, a lightweight hierarchical Vision Transformer (ViT) with an MLP decoder pre-trained on ADE20K (150 semantic scene parsing categories).
+
+### Why SegFormer-B0?
+1. **Compact & Fast**: Only ~3.7M parameters (~14MB), allowing fast, responsive inference on standard laptops and CPU environments.
+2. **Comprehensive Urban Feature Coverage**: Pixel-level multi-class prediction across key urban landscape categories:
+   - `Building`, `House`, `Roof`
+   - `Wall`, `Fence`
+   - `Road`, `Path`, `Sidewalk`
+   - `Grass`, `Tree`, `Plant`, `Earth / Ground`
+   - `Water`, `Field`
+3. **Multi-scale Feature Fusion**: Captures both fine boundary edges and broad parcel contexts.
+
+---
+
 ## 🛠️ Technology Stack
 
 - **Frontend / UI**: Streamlit, Streamlit-Folium
+- **Computer Vision & AI**: PyTorch, Hugging Face Transformers, OpenCV, NumPy, Pillow
 - **Geospatial & Vector**: GeoPandas, Shapely, Folium, GeoJSON
-- **Computer Vision & AI**: PyTorch, OpenCV, NumPy, Pillow
 - **Data & Analytics**: Pandas
 
 ---
@@ -59,9 +77,9 @@ sih-project/
 │
 ├── src/                        # Core algorithmic modules
 │   ├── __init__.py
-│   ├── segmentation/           # AI feature & boundary segmentation
+│   ├── segmentation/           # AI feature & semantic segmentation
 │   │   ├── __init__.py
-│   │   └── inference.py
+│   │   └── inference.py        # Model loading, segmentation, statistics, overlay
 │   ├── geometry/               # Boundary extraction & geometric processing
 │   │   ├── __init__.py
 │   │   └── boundary.py
@@ -86,7 +104,8 @@ sih-project/
 └── tests/                      # Automated smoke & unit tests
     ├── __init__.py
     ├── test_smoke.py
-    └── test_image_processing.py
+    ├── test_image_processing.py
+    └── test_segmentation.py
 ```
 
 ---
@@ -108,7 +127,7 @@ cd sih-project
 pip install -r requirements.txt
 ```
 
-### 4. Run Smoke & Unit Tests
+### 4. Run Automated Test Suite
 ```bash
 python -m unittest discover tests
 ```
@@ -124,7 +143,7 @@ streamlit run app.py
 
 - [x] **Milestone 1**: Project architecture, environment setup, modular structure, smoke test suite.
 - [x] **Milestone 2**: Aerial image input validation, metadata extraction, RGB normalization, and AI tensor preprocessing pipeline.
-- [ ] **Milestone 3**: AI-based feature segmentation & boundary extraction.
+- [x] **Milestone 3**: AI-based feature segmentation using SegFormer Transformer, class statistics, and alpha-blended diagnostic overlays.
 - [ ] **Milestone 4**: Parcel vectorization, polygon regularization & topology validation.
 - [ ] **Milestone 5**: Interactive GIS visualization with Folium.
 - [ ] **Milestone 6**: Historical cadastral comparison & encroachment detection.
