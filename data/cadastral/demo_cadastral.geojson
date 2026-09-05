@@ -17,9 +17,9 @@
   "features": [
     {
       "type": "Feature",
-      "id": "CAD-001",
+      "id": "P-001",
       "properties": {
-        "cadastral_id": "CAD-001",
+        "cadastral_id": "P-001",
         "owner_reference": "Property Plot 101",
         "registered_area_px": 14400.0,
         "land_use": "Residential",
@@ -40,9 +40,9 @@
     },
     {
       "type": "Feature",
-      "id": "CAD-002",
+      "id": "P-002",
       "properties": {
-        "cadastral_id": "CAD-002",
+        "cadastral_id": "P-002",
         "owner_reference": "Property Plot 102",
         "registered_area_px": 17500.0,
         "land_use": "Commercial",
@@ -63,9 +63,9 @@
     },
     {
       "type": "Feature",
-      "id": "CAD-003",
+      "id": "P-003",
       "properties": {
-        "cadastral_id": "CAD-003",
+        "cadastral_id": "P-003",
         "owner_reference": "Property Plot 103",
         "registered_area_px": 11000.0,
         "land_use": "Residential",
@@ -86,9 +86,9 @@
     },
     {
       "type": "Feature",
-      "id": "CAD-004",
+      "id": "P-004",
       "properties": {
-        "cadastral_id": "CAD-004",
+        "cadastral_id": "P-004",
         "owner_reference": "Property Plot 104",
         "registered_area_px": 21000.0,
         "land_use": "Industrial",
@@ -109,9 +109,9 @@
     },
     {
       "type": "Feature",
-      "id": "CAD-005",
+      "id": "P-005",
       "properties": {
-        "cadastral_id": "CAD-005",
+        "cadastral_id": "P-005",
         "owner_reference": "Vacant Plot 105",
         "registered_area_px": 9000.0,
         "land_use": "Agricultural/Open",
